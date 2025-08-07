@@ -416,3 +416,17 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Docker
+docker-compose.override.yml
+
+# User secrets
+appsettings.Development.json
+appsettings.Production.json
+
+# Database
+*.db
+*.db-*
+
+# Uploads
+wwwroot/uploads/
