@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: bachata_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: bachata_feedback
+      MYSQL_USER: bachata_user
+      MYSQL_PASSWORD: bachata_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  bachatafeedback.api:
+    image: ${DOCKER_REGISTRY-}bachatafeedbackapi
+    container_name: bachata_api
+    build:
+      context: .
+      dockerfile: BachataFeedback.Api/Dockerfile
+    ports:
+      - "5000:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Server=mysql;Database=bachata_feedback;User=bachata_user;Password=bachata_pass;
+
+volumes:
+  mysql_data:
