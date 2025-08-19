@@ -1,4 +1,5 @@
-﻿using BachataFeedback.Core.DTOs;
+﻿using BachataFeedback.Api.Services;
+using BachataFeedback.Core.DTOs;
 using BachataFeedback.Core.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -11,11 +12,13 @@ public class AuthController : ControllerBase
 {
     private readonly UserManager<User> _userManager;
     private readonly SignInManager<User> _signInManager;
+    private readonly ITokenService _tokenService;
 
-    public AuthController(UserManager<User> userManager, SignInManager<User> signInManager)
+    public AuthController(UserManager<User> userManager, SignInManager<User> signInManager, ITokenService tokenService)
     {
         _userManager = userManager;
         _signInManager = signInManager;
+        _tokenService = tokenService;
     }
 
     [HttpPost("register")]
@@ -37,7 +40,27 @@ public class AuthController : ControllerBase
 
         if (result.Succeeded)
         {
-            return Ok(new { message = "User registered successfully" });
+            var token = _tokenService.GenerateToken(user);
+
+            return Ok(new
+            {
+                message = "User registered successfully",
+                token = token,
+                user = new UserProfileDto
+                {
+                    Id = user.Id,
+                    Email = user.Email,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Nickname = user.Nickname,
+                    StartDancingDate = user.StartDancingDate,
+                    SelfAssessedLevel = user.SelfAssessedLevel,
+                    Bio = user.Bio,
+                    DanceStyles = user.DanceStyles,
+                    MainPhotoPath = user.MainPhotoPath,
+                    CreatedAt = user.CreatedAt
+                }
+            });
         }
 
         foreach (var error in result.Errors)
@@ -54,18 +77,23 @@ public class AuthController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var result = await _signInManager.PasswordSignInAsync(
-            model.Email, model.Password, false, lockoutOnFailure: false);
+        var user = await _userManager.FindByEmailAsync(model.Email);
+        if (user == null)
+            return Unauthorized(new { message = "Invalid login credentials" });
+
+        var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
 
         if (result.Succeeded)
         {
-            var user = await _userManager.FindByEmailAsync(model.Email);
+            var token = _tokenService.GenerateToken(user);
+
             return Ok(new
             {
                 message = "Login successful",
+                token = token,
                 user = new UserProfileDto
                 {
-                    Id = user!.Id,
+                    Id = user.Id,
                     Email = user.Email!,
                     FirstName = user.FirstName,
                     LastName = user.LastName,
@@ -81,12 +109,5 @@ public class AuthController : ControllerBase
         }
 
         return Unauthorized(new { message = "Invalid login credentials" });
-    }
-
-    [HttpPost("logout")]
-    public async Task<IActionResult> Logout()
-    {
-        await _signInManager.SignOutAsync();
-        return Ok(new { message = "Logout successful" });
     }
 }
