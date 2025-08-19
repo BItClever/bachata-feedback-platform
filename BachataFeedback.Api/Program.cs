@@ -58,6 +58,8 @@ builder.Services.AddAuthentication(options =>
 
 // Services
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
