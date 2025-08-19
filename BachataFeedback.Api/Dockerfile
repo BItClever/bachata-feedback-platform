@@ -8,14 +8,14 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["BachataFeedback.Api/BachataFeedback.Api.csproj", "BachataFeedback.Api/"]
 COPY ["BachataFeedback.Core/BachataFeedback.Core.csproj", "BachataFeedback.Core/"]
-RUN dotnet restore "./BachataFeedback.Api/BachataFeedback.Api.csproj"
+RUN dotnet restore "BachataFeedback.Api/BachataFeedback.Api.csproj"
 COPY . .
 WORKDIR "/src/BachataFeedback.Api"
-RUN dotnet build "./BachataFeedback.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "BachataFeedback.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./BachataFeedback.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "BachataFeedback.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app

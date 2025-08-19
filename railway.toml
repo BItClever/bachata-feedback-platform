@@ -1,0 +1,10 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "BachataFeedback.Api/Dockerfile"
+
+[deploy]
+startCommand = "dotnet BachataFeedback.Api.dll"
+healthcheckPath = "/health"
+healthcheckTimeout = 100
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
