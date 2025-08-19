@@ -10,6 +10,7 @@ namespace BachataFeedback.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class EventsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -22,6 +23,7 @@ public class EventsController : ControllerBase
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<IEnumerable<EventDto>>> GetEvents()
     {
         var currentUserId = _userManager.GetUserId(User);
@@ -49,6 +51,7 @@ public class EventsController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [AllowAnonymous]
     public async Task<ActionResult<EventDto>> GetEvent(int id)
     {
         var currentUserId = _userManager.GetUserId(User);
@@ -161,7 +164,7 @@ public class EventsController : ControllerBase
         return Ok(new { message = "Successfully joined the event" });
     }
 
-    [HttpDelete("{id}/leave")]
+    [HttpPost("{id}/leave")]
     [Authorize]
     public async Task<IActionResult> LeaveEvent(int id)
     {
