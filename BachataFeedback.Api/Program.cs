@@ -98,9 +98,20 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// CORS for development
+// CORS configuration
 builder.Services.AddCors(options =>
 {
+    options.AddPolicy("Production", policy =>
+    {
+        policy.WithOrigins(
+                "https://your-app.up.railway.app", //свой Railway домен
+                "http://localhost:3000" // Для локальной разработки
+            )
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+
     options.AddPolicy("AllowAll", policy =>
     {
         policy.AllowAnyHeader()
@@ -126,6 +137,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
     app.UseCors("AllowAll");
+}
+else
+{
+    app.UseCors("Production");
 }
 
 app.UseAuthentication();
