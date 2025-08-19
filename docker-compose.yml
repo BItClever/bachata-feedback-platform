@@ -33,7 +33,8 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Server=mysql;Database=bachata_feedback;User=bachata_user;Password=bachata_pass;
+      - ConnectionStrings__DefaultConnection=Server=mysql;Database=bachata_feedback;User=bachata_user;Password=bachata_pass;AllowUserVariables=true;UseAffectedRows=false;
+    restart: unless-stopped
 
 volumes:
   mysql_data:
