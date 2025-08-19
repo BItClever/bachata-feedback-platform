@@ -1,4 +1,5 @@
 using BachataFeedback.Api.Data;
+using BachataFeedback.Api.Middleware;
 using BachataFeedback.Api.Services;
 using BachataFeedback.Core.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -64,7 +65,6 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "Bachata Feedback API", Version = "v1" });
 
-    // JWT Authorization â Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
@@ -109,6 +109,9 @@ using (var scope = app.Services.CreateScope())
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await dbContext.Database.MigrateAsync();
 }
+
+// Exception handling middleware
+app.UseMiddleware<ExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
