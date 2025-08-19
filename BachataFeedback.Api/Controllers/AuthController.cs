@@ -40,7 +40,7 @@ public class AuthController : ControllerBase
 
         if (result.Succeeded)
         {
-            var token = _tokenService.GenerateToken(user);
+            var token = await _tokenService.GenerateTokenAsync(user);
 
             return Ok(new
             {
@@ -85,7 +85,7 @@ public class AuthController : ControllerBase
 
         if (result.Succeeded)
         {
-            var token = _tokenService.GenerateToken(user);
+            var token = await _tokenService.GenerateTokenAsync(user);
 
             return Ok(new
             {

@@ -1,4 +1,5 @@
 ﻿using BachataFeedback.Core.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -8,19 +9,21 @@ namespace BachataFeedback.Api.Services;
 
 public interface ITokenService
 {
-    string GenerateToken(User user);
+    Task<string> GenerateTokenAsync(User user);
 }
 
 public class TokenService : ITokenService
 {
     private readonly IConfiguration _configuration;
+    private readonly UserManager<User> _userManager;
 
-    public TokenService(IConfiguration configuration)
+    public TokenService(IConfiguration configuration, UserManager<User> userManager)
     {
         _configuration = configuration;
+        _userManager = userManager;
     }
 
-    public string GenerateToken(User user)
+    public async Task<string> GenerateTokenAsync(User user)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
         var key = Encoding.ASCII.GetBytes(jwtSettings["Secret"]!);
@@ -37,6 +40,13 @@ public class TokenService : ITokenService
         if (!string.IsNullOrEmpty(user.Nickname))
         {
             claims.Add(new Claim("nickname", user.Nickname));
+        }
+
+        // Добавляем роли в токен
+        var roles = await _userManager.GetRolesAsync(user);
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
         }
 
         var tokenDescriptor = new SecurityTokenDescriptor
