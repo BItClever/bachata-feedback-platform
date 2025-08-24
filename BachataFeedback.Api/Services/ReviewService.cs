@@ -8,8 +8,8 @@ namespace BachataFeedback.Api.Services;
 
 public interface IReviewService
 {
-    Task<IEnumerable<ReviewDto>> GetAllReviewsAsync();
-    Task<IEnumerable<ReviewDto>> GetUserReviewsAsync(string userId);
+    Task<IEnumerable<ReviewDto>> GetAllReviewsAsync(string? requestorId);
+    Task<IEnumerable<ReviewDto>> GetUserReviewsAsync(string userId, string? requestorId);
     Task<ReviewDto?> CreateReviewAsync(string reviewerId, CreateReviewDto model);
     Task<bool> CanUserReviewAsync(string reviewerId, string revieweeId, int? eventId);
 }
@@ -23,7 +23,32 @@ public class ReviewService : IReviewService
         _context = context;
     }
 
-    public async Task<IEnumerable<ReviewDto>> GetAllReviewsAsync()
+    private async Task<ReviewDto> MapToReviewDtoWithPrivacyAsync(Review review, string? requestorId)
+    {
+        var dto = MapToReviewDto(review);
+
+        // если смотрит сам владелец профиля (review.RevieweeId == requestorId) — показываем всё
+        if (requestorId != null && review.RevieweeId == requestorId)
+            return dto;
+
+        var settings = await _context.UserSettings.FindAsync(review.RevieweeId);
+        bool showRatings = settings?.ShowRatingsToOthers ?? true;
+        bool showText = settings?.ShowTextReviewsToOthers ?? true;
+
+        if (!showRatings)
+        {
+            dto.LeadRatings = null;
+            dto.FollowRatings = null;
+        }
+        if (!showText)
+        {
+            dto.TextReview = null;
+        }
+
+        return dto;
+    }
+
+    public async Task<IEnumerable<ReviewDto>> GetAllReviewsAsync(string? requestorId)
     {
         var reviewsData = await _context.Reviews
             .Include(r => r.Reviewer)
@@ -32,10 +57,14 @@ public class ReviewService : IReviewService
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
 
-        return MapToReviewDtos(reviewsData);
+        var result = new List<ReviewDto>();
+        foreach (var r in reviewsData)
+            result.Add(await MapToReviewDtoWithPrivacyAsync(r, requestorId));
+
+        return result;
     }
 
-    public async Task<IEnumerable<ReviewDto>> GetUserReviewsAsync(string userId)
+    public async Task<IEnumerable<ReviewDto>> GetUserReviewsAsync(string userId, string? requestorId)
     {
         var reviewsData = await _context.Reviews
             .Include(r => r.Reviewer)
@@ -45,7 +74,11 @@ public class ReviewService : IReviewService
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
 
-        return MapToReviewDtos(reviewsData);
+        var result = new List<ReviewDto>();
+        foreach (var r in reviewsData)
+            result.Add(await MapToReviewDtoWithPrivacyAsync(r, requestorId));
+
+        return result;
     }
 
     public async Task<ReviewDto?> CreateReviewAsync(string reviewerId, CreateReviewDto model)
@@ -58,6 +91,12 @@ public class ReviewService : IReviewService
         if (reviewee == null)
             throw new KeyNotFoundException("Reviewee not found");
 
+        // Настройки приватности reviewee
+        var settings = await _context.UserSettings.FindAsync(model.RevieweeId);
+        // Если настроек нет, считаем значения по умолчанию (как в модели)
+        bool allowReviews = settings?.AllowReviews ?? true;
+        bool allowAnonymous = settings?.AllowAnonymousReviews ?? true;
+
         // Проверка участия в событии
         if (model.EventId.HasValue)
         {
@@ -68,6 +107,27 @@ public class ReviewService : IReviewService
             var canReview = await CanUserReviewAsync(reviewerId, model.RevieweeId, model.EventId);
             if (!canReview)
                 throw new ApplicationException("Both users must have participated in the event");
+        }
+
+        if (!allowReviews)
+            throw new ApplicationException("This user does not accept reviews");
+
+        if (model.IsAnonymous && !allowAnonymous)
+            throw new ApplicationException("Anonymous reviews are not allowed by this user");
+
+        // Ограничение частоты: один отзыв раз в 14 дней без события
+        if (model.EventId == null)
+        {
+            var twoWeeksAgo = DateTime.UtcNow.AddDays(-14);
+            var recent = await _context.Reviews
+                .Where(r => r.ReviewerId == reviewerId
+                         && r.RevieweeId == model.RevieweeId
+                         && r.EventId == null
+                         && r.CreatedAt >= twoWeeksAgo)
+                .AnyAsync();
+
+            if (recent)
+                throw new ApplicationException("You can leave a non-event review for this user once every 14 days");
         }
 
         var review = new Review

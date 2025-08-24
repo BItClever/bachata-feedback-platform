@@ -24,14 +24,16 @@ public class ReviewsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ReviewDto>>> GetReviews()
     {
-        var reviews = await _reviewService.GetAllReviewsAsync();
+        var requestorId = _userManager.GetUserId(User);
+        var reviews = await _reviewService.GetAllReviewsAsync(requestorId);
         return Ok(reviews);
     }
 
     [HttpGet("user/{userId}")]
     public async Task<ActionResult<IEnumerable<ReviewDto>>> GetUserReviews(string userId)
     {
-        var reviews = await _reviewService.GetUserReviewsAsync(userId);
+        var requestorId = _userManager.GetUserId(User);
+        var reviews = await _reviewService.GetUserReviewsAsync(userId, requestorId);
         return Ok(reviews);
     }
 
