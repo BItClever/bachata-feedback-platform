@@ -59,8 +59,8 @@ export interface User {
   selfAssessedLevel?: string;
   startDancingDate?: string;
   danceStyles?: string;
+  mainPhotoPath?: string | null;
   createdAt: string;
-  updatedAt: string;
 }
 
 export interface Event {
@@ -91,6 +91,14 @@ export interface Review {
   tags?: string[] | null;
   isAnonymous: boolean;
   createdAt: string;
+}
+
+export interface UserSettingsDto {
+  allowReviews: boolean;
+  showRatingsToOthers: boolean;
+  showTextReviewsToOthers: boolean;
+  allowAnonymousReviews: boolean;
+  showPhotosToGuests: boolean;
 }
 
 // API endpoints
@@ -148,6 +156,11 @@ export const eventsAPI = {
 export const reportsAPI = {
   create: (data: { targetType: 'Review'|'Photo'; targetId: number; reason: string; description?: string }) =>
     api.post('/reports', data),
+};
+
+export const userSettingsAPI = {
+  getMine: () => api.get<UserSettingsDto>('/userSettings/me'),
+  updateMine: (data: UserSettingsDto) => api.put('/userSettings/me', data),
 };
 
 export default api;

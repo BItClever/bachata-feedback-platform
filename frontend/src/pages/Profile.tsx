@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { usersAPI } from '../services/api';
+import { usersAPI, userSettingsAPI } from '../services/api';
 
 const Profile: React.FC = () => {
-  const { user, updateUserData } = useAuth(); // Изменили на updateUserData
+  const { user, updateUserData } = useAuth(); 
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
@@ -65,16 +65,45 @@ const Profile: React.FC = () => {
     }
   };
 
-  // Остальной код остается без изменений...
+    const levelOptions = [
+      'Beginner',
+      'Beginner-Intermediate',
+      'Intermediate',
+      'Intermediate-Advanced',
+      'Advanced',
+      'Professional'
+    ];
 
-  const levelOptions = [
-    'Beginner',
-    'Beginner-Intermediate',
-    'Intermediate',
-    'Intermediate-Advanced',
-    'Advanced',
-    'Professional'
-  ];
+    const [settings, setSettings] = useState({
+    allowReviews: true,
+    showRatingsToOthers: true,
+    showTextReviewsToOthers: true,
+    allowAnonymousReviews: true,
+    showPhotosToGuests: true,
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const resp = await userSettingsAPI.getMine();
+        setSettings(resp.data);
+      } catch {}
+    };
+    load();
+  }, []);
+
+  const saveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      await userSettingsAPI.updateMine(settings);
+      setSuccess('Settings updated!');
+    } catch (e:any) {
+      setError(e.response?.data?.message || 'Failed to update settings');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -274,7 +303,35 @@ const Profile: React.FC = () => {
           </div>
         )}
       </div>
+      <div className="bg-white rounded-lg shadow-lg p-8 mt-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Privacy Settings</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[
+            { key: 'allowReviews', label: 'Allow reviews' },
+            { key: 'showRatingsToOthers', label: 'Show numeric ratings to others' },
+            { key: 'showTextReviewsToOthers', label: 'Show text reviews to others' },
+            { key: 'allowAnonymousReviews', label: 'Allow anonymous reviews' },
+            { key: 'showPhotosToGuests', label: 'Show photos to guests' },
+          ].map(item => (
+            <label key={item.key} className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={(settings as any)[item.key]}
+                onChange={(e) => setSettings(prev => ({ ...prev, [item.key]: e.target.checked }))}
+              />
+              <span>{item.label}</span>
+            </label>
+          ))}
+        </div>
+
+        <div className="mt-4">
+          <button onClick={saveSettings} disabled={savingSettings} className="btn-primary">
+            {savingSettings ? 'Saving...' : 'Save Settings'}
+          </button>
+        </div>
+      </div>
     </div>
+    
   );
 };
 
