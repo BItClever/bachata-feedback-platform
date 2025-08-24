@@ -1,6 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace BachataFeedback.Core.Models;
+﻿using BachataFeedback.Core.Models;
+using System.ComponentModel.DataAnnotations;
 
 public class Report
 {
@@ -17,13 +16,13 @@ public class Report
 
     [Required]
     [MaxLength(50)]
-    public string Reason { get; set; } = string.Empty; // "Spam", "Inappropriate", "Offensive"
+    public string Reason { get; set; } = string.Empty;
 
     [MaxLength(500)]
     public string? Description { get; set; }
 
     [MaxLength(20)]
-    public string Status { get; set; } = "Pending"; // "Pending", "Reviewed", "Resolved"
+    public string Status { get; set; } = "Pending";
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -31,6 +30,4 @@ public class Report
 
     // Navigation properties
     public User Reporter { get; set; } = null!;
-    public Review? Review { get; set; }
-    public UserPhoto? Photo { get; set; }
 }

@@ -77,20 +77,6 @@ public class ApplicationDbContext : IdentityDbContext<User>
             .HasForeignKey(r => r.ReporterId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.Entity<Report>()
-            .HasOne(r => r.Review)
-            .WithMany(rev => rev.Reports)
-            .HasForeignKey(r => r.TargetId)
-            .HasPrincipalKey(rev => rev.Id)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.Entity<Report>()
-            .HasOne(r => r.Photo)
-            .WithMany(p => p.Reports)
-            .HasForeignKey(r => r.TargetId)
-            .HasPrincipalKey(p => p.Id)
-            .OnDelete(DeleteBehavior.Cascade);
-
         // Unique constraints
         builder.Entity<EventParticipant>()
             .HasIndex(ep => new { ep.UserId, ep.EventId })

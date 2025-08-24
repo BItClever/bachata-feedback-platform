@@ -123,8 +123,6 @@ public class AdminController : ControllerBase
     {
         var reports = await _context.Reports
             .Include(r => r.Reporter)
-            .Include(r => r.Review)
-            .Include(r => r.Photo)
             .Where(r => r.Status == status)
             .Select(r => new
             {
@@ -136,7 +134,6 @@ public class AdminController : ControllerBase
                 r.Description,
                 r.Status,
                 r.CreatedAt,
-                TargetContent = r.TargetType == "Review" ? r.Review!.TextReview : r.Photo!.Caption
             })
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
