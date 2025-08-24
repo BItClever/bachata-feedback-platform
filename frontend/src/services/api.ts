@@ -78,18 +78,19 @@ export interface Event {
 }
 
 export interface Review {
-  id: string;
-  revieweeId: string;
+  id: number;
   reviewerId: string;
-  eventId: string;
-  content: string;
-  rating: number;
+  revieweeId: string;
+  reviewerName?: string;
+  revieweeName?: string;
+  eventId?: number | null;
+  eventName?: string | null;
+  leadRatings?: { [key: string]: number } | null;
+  followRatings?: { [key: string]: number } | null;
+  textReview?: string | null;
+  tags?: string[] | null;
   isAnonymous: boolean;
   createdAt: string;
-  updatedAt: string;
-  reviewee: User;
-  reviewer: User;
-  event: Event;
 }
 
 // API endpoints
@@ -118,13 +119,15 @@ export const reviewsAPI = {
   getUserReviews: (userId: string) => api.get<Review[]>(`/reviews/user/${userId}`),
   createReview: (data: {
     revieweeId: string;
-    eventId: string;
-    content: string;
-    rating: number;
+    eventId?: number | null; // опционально
+    leadRatings?: { [key: string]: number };
+    followRatings?: { [key: string]: number };
+    textReview?: string;
+    tags?: string[];
     isAnonymous: boolean;
   }) => api.post<Review>('/reviews', data),
-  updateReview: (id: string, data: Partial<Review>) => api.put<Review>(`/reviews/${id}`, data),
-  deleteReview: (id: string) => api.delete(`/reviews/${id}`),
+  updateReview: (id: number, data: Partial<Review>) => api.put<Review>(`/reviews/${id}`, data),
+  deleteReview: (id: number) => api.delete(`/reviews/${id}`),
 };
 
 export const eventsAPI = {

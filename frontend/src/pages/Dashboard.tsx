@@ -10,7 +10,6 @@ const Dashboard: React.FC = () => {
 
   const fetchReviews = async () => {
     if (!user) return;
-    
     try {
       setIsLoading(true);
       setError('');
@@ -26,9 +25,18 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchReviews();
-  }, [user]);
+  useEffect(() => { fetchReviews(); }, [user]);
+
+  const avg = (arr: number[]) => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length) : 0;
+
+  const calcAvgFor = (key: 'leadRatings' | 'followRatings') => {
+    const values: number[] = [];
+    reviews.forEach(r => {
+      const dict = r[key];
+      if (dict) Object.values(dict).forEach(v => values.push(v));
+    });
+    return avg(values);
+  };
 
   if (isLoading) {
     return (
@@ -41,48 +49,34 @@ const Dashboard: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Welcome, {user?.firstName}!
-        </h1>
-        <p className="text-gray-600 mt-2">
-          Here's your feedback dashboard
-        </p>
+        <h1 className="text-3xl font-bold text-gray-900">Welcome, {user?.firstName}!</h1>
+        <p className="text-gray-600 mt-2">Here is your feedback overview</p>
       </div>
 
       {error && (
         <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
           {error}
-          <button 
-            onClick={fetchReviews}
-            className="ml-4 text-red-800 underline hover:no-underline"
-          >
+          <button onClick={fetchReviews} className="ml-4 text-red-800 underline hover:no-underline">
             Try again
           </button>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-medium text-gray-900">Reviews Received</h3>
-          <p className="text-3xl font-bold text-primary-600 mt-2">
-            {reviews.length}
+          <p className="text-3xl font-bold text-primary-600 mt-2">{reviews.length}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-medium text-gray-900">Avg Lead</h3>
+          <p className="text-3xl font-bold text-blue-600 mt-2">
+            {calcAvgFor('leadRatings').toFixed(1) || '0.0'}
           </p>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-900">Average Rating</h3>
-          <p className="text-3xl font-bold text-accent-600 mt-2">
-            {reviews.length > 0 
-              ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
-              : 'N/A'
-            }
-          </p>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-900">Recent Feedback</h3>
-          <p className="text-3xl font-bold text-gray-600 mt-2">
-            {reviews.filter(review => 
-              new Date(review.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-            ).length}
+          <h3 className="text-lg font-medium text-gray-900">Avg Follow</h3>
+          <p className="text-3xl font-bold text-green-600 mt-2">
+            {calcAvgFor('followRatings').toFixed(1) || '0.0'}
           </p>
         </div>
       </div>
@@ -103,22 +97,25 @@ const Dashboard: React.FC = () => {
                   <div className="flex-1">
                     <div className="flex items-center space-x-2">
                       <span className="text-sm font-medium text-gray-900">
-                        {review.isAnonymous ? 'Anonymous' : `${review.reviewer.firstName} ${review.reviewer.lastName}`}
+                        {review.isAnonymous ? 'Anonymous' : review.reviewerName}
                       </span>
-                      <span className="text-sm text-gray-500">•</span>
-                      <span className="text-sm text-gray-500">
-                        {review.event.name}
-                      </span>
+                      {review.eventName && (
+                        <>
+                          <span className="text-sm text-gray-500">•</span>
+                          <span className="text-sm text-gray-500">{review.eventName}</span>
+                        </>
+                      )}
                     </div>
-                    <p className="text-gray-700 mt-1">{review.content}</p>
+                    {review.textReview && (
+                      <p className="text-gray-700 mt-1">{review.textReview}</p>
+                    )}
                     <p className="text-sm text-gray-500 mt-2">
                       {new Date(review.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                  <div className="flex items-center">
-                    <span className="text-lg font-bold text-accent-600">
-                      {review.rating}/5
-                    </span>
+                  <div className="flex flex-col items-end text-xs text-gray-600">
+                    {review.leadRatings && <span>Lead: {avg(Object.values(review.leadRatings)).toFixed(1)}/5</span>}
+                    {review.followRatings && <span>Follow: {avg(Object.values(review.followRatings)).toFixed(1)}/5</span>}
                   </div>
                 </div>
               </div>
