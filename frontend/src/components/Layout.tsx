@@ -50,10 +50,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   >
                     Events
                   </Link>
+                  <Link
+                    to="/profile"
+                    className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                     {user.firstName} {user.lastName}
+                  </Link>
                   <div className="flex items-center space-x-3">
-                    <span className="text-gray-700 text-sm">
-                      {user.firstName} {user.lastName}
-                    </span>
                     <button
                       onClick={handleLogout}
                       className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium"
