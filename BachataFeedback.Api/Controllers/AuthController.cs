@@ -110,4 +110,26 @@ public class AuthController : ControllerBase
 
         return Unauthorized(new { message = "Invalid login credentials" });
     }
+
+    [HttpGet("me")]
+    public async Task<IActionResult> Me()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Unauthorized();
+
+        return Ok(new UserProfileDto
+        {
+            Id = user.Id,
+            Email = user.Email!,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Nickname = user.Nickname,
+            StartDancingDate = user.StartDancingDate,
+            SelfAssessedLevel = user.SelfAssessedLevel,
+            Bio = user.Bio,
+            DanceStyles = user.DanceStyles,
+            MainPhotoPath = user.MainPhotoPath,
+            CreatedAt = user.CreatedAt
+        });
+    }
 }
