@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { reviewsAPI, Review } from '../services/api';
+import { reviewsAPI, Review, reportsAPI } from '../services/api';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -118,6 +118,21 @@ const Dashboard: React.FC = () => {
                     {review.followRatings && <span>Follow: {avg(Object.values(review.followRatings)).toFixed(1)}/5</span>}
                   </div>
                 </div>
+                <button
+                  className="text-xs text-red-600 hover:underline ml-4"
+                  onClick={async () => {
+                    const reason = prompt('Reason (e.g., Spam, Inappropriate, Offensive):');
+                    if (!reason) return;
+                    try {
+                      await reportsAPI.create({ targetType: 'Review', targetId: review.id, reason });
+                      alert('Report submitted');
+                    } catch (e) {
+                      alert('Failed to submit report');
+                    }
+                  }}
+                >
+                  Report
+                </button>
               </div>
             ))}
           </div>

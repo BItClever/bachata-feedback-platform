@@ -145,4 +145,9 @@ export const eventsAPI = {
   leaveEvent: (id: number) => api.post(`/events/${id}/leave`),
 };
 
+export const reportsAPI = {
+  create: (data: { targetType: 'Review'|'Photo'; targetId: number; reason: string; description?: string }) =>
+    api.post('/reports', data),
+};
+
 export default api;
