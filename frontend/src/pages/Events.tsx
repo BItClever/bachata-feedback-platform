@@ -123,12 +123,20 @@ const Events: React.FC = () => {
 
               <div className="px-6 pb-6">
                 {event.isUserParticipating ? (
+                  <div className="mt-3 grid grid-cols-2 gap-3">
                   <button
                     onClick={() => handleLeaveEvent(event.id)}
                     className="btn-secondary w-full"
                   >
                     Leave Event
                   </button>
+                  <button
+                  onClick={() => { setEventToReview(event); setShowEventReviewModal(true); }}
+                  className="btn-primary w-full"
+                >
+                  Rate Event
+                </button>
+                </div>
                 ) : (
                   <button
                     onClick={() => handleJoinEvent(event.id)}
@@ -137,23 +145,6 @@ const Events: React.FC = () => {
                     Join Event
                   </button>
                 )}
-              </div>
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                {event.isUserParticipating ? (
-                  <button onClick={() => handleLeaveEvent(event.id)} className="btn-secondary w-full">
-                    Leave Event
-                  </button>
-                ) : (
-                  <button onClick={() => handleJoinEvent(event.id)} className="btn-primary w-full">
-                    Join Event
-                  </button>
-                )}
-                <button
-                  onClick={() => { setEventToReview(event); setShowEventReviewModal(true); }}
-                  className="btn-primary w-full"
-                >
-                  Rate Event
-                </button>
               </div>
             </div>
           ))}
