@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { usersAPI, userSettingsAPI } from '../services/api';
+import { usersAPI, userSettingsAPI, reviewsAPI, Review } from '../services/api';
 
 const Profile: React.FC = () => {
   const { user, updateUserData } = useAuth(); 
@@ -17,21 +17,57 @@ const Profile: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [myReviews, setMyReviews] = useState<Review[]>([]);
+  const [ratingsAgg, setRatingsAgg] = useState<{ lead: Record<string, number>, follow: Record<string, number> }>({
+  lead: {},
+  follow: {}
+});
 
   // Обновляем formData когда user изменяется
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        nickname: user.nickname || '',
-        bio: user.bio || '',
-        selfAssessedLevel: user.selfAssessedLevel || '',
-        startDancingDate: user.startDancingDate ? user.startDancingDate.split('T')[0] : '',
-        danceStyles: user.danceStyles || ''
-      });
+useEffect(() => {
+  const load = async () => {
+    if (!user) return;
+    try {
+      const res = await reviewsAPI.getUserReviews(user.id);
+      setMyReviews(res.data);
+
+      const leadAcc: Record<string, { sum: number; count: number }> = {};
+      const followAcc: Record<string, { sum: number; count: number }> = {};
+
+      for (const r of res.data) {
+        if (r.leadRatings) {
+          for (const [k, v] of Object.entries(r.leadRatings)) {
+            if (!leadAcc[k]) leadAcc[k] = { sum: 0, count: 0 };
+            leadAcc[k].sum += v;
+            leadAcc[k].count += 1;
+          }
+        }
+        if (r.followRatings) {
+          for (const [k, v] of Object.entries(r.followRatings)) {
+            if (!followAcc[k]) followAcc[k] = { sum: 0, count: 0 };
+            followAcc[k].sum += v;
+            followAcc[k].count += 1;
+          }
+        }
+      }
+
+      const leadOut: Record<string, number> = {};
+      for (const [k, { sum, count }] of Object.entries(leadAcc)) {
+        leadOut[k] = count ? sum / count : 0;
+      }
+
+      const followOut: Record<string, number> = {};
+      for (const [k, { sum, count }] of Object.entries(followAcc)) {
+        followOut[k] = count ? sum / count : 0;
+      }
+
+      setRatingsAgg({ lead: leadOut, follow: followOut });
+    } catch (e) {
+      // тихо игнорируем в MVP
     }
-  }, [user]);
+  };
+  load();
+}, [user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({
@@ -298,6 +334,39 @@ const Profile: React.FC = () => {
               <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Dance Styles</h3>
                 <p className="text-gray-700">{user.danceStyles}</p>
+              </div>
+            )}
+            {(Object.keys(ratingsAgg.lead).length > 0 || Object.keys(ratingsAgg.follow).length > 0) && (
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">My Ratings</h3>
+
+                {Object.keys(ratingsAgg.lead).length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Lead</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {Object.entries(ratingsAgg.lead).map(([k, v]) => (
+                        <div key={k} className="flex justify-between bg-gray-50 rounded px-3 py-2">
+                          <span className="capitalize text-gray-700">{k}</span>
+                          <span className="font-semibold text-gray-900">{v.toFixed(1)}/5</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {Object.keys(ratingsAgg.follow).length > 0 && (
+                  <div className="mb-2">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Follow</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {Object.entries(ratingsAgg.follow).map(([k, v]) => (
+                        <div key={k} className="flex justify-between bg-gray-50 rounded px-3 py-2">
+                          <span className="capitalize text-gray-700">{k}</span>
+                          <span className="font-semibold text-gray-900">{v.toFixed(1)}/5</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
