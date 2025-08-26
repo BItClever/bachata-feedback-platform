@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { eventsAPI, Event } from '../services/api';
 import EventModal from '../components/EventModal';
 import EventReviewModal from '../components/EventReviewModal';
+import EventReviewsPanel from '../components/EventReviewsPanel';
 
 const Events: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
@@ -10,6 +11,7 @@ const Events: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showEventReviewModal, setShowEventReviewModal] = useState(false);
   const [eventToReview, setEventToReview] = useState<Event | null>(null);
+  const [openReviewsForEventId, setOpenReviewsForEventId] = useState<number | null>(null);
 
   const fetchEvents = async () => {
     try {
@@ -145,8 +147,23 @@ const Events: React.FC = () => {
                     Join Event
                   </button>
                 )}
+                <div className="mt-3">
+                <button
+                  onClick={() =>
+                    setOpenReviewsForEventId(prev => (prev === event.id ? null : event.id))
+                  }
+                  className="btn-secondary w-full"
+                >
+                  {openReviewsForEventId === event.id ? 'Hide reviews' : 'View reviews'}
+                </button>
+                </div>
               </div>
-            </div>
+              {openReviewsForEventId === event.id && (
+              <div className="mt-3 bg-white border border-gray-200 rounded-lg">
+                <EventReviewsPanel eventId={event.id} />
+              </div>
+            )}
+          </div>
           ))}
         </div>
       )}
