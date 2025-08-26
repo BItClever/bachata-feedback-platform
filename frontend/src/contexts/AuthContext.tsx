@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authAPI, User } from '../services/api';
+import { authAPI, User, usersAPI } from '../services/api';
 
 interface RegisterData {
   firstName: string;
@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (token) {
         try {
-          const response = await authAPI.getCurrentUser();
+          const response = await usersAPI.getCurrentUser();
           setUser(response.data);
           console.log('User loaded from token:', response.data);
         } catch (error) {

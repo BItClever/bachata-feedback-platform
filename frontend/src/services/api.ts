@@ -59,12 +59,12 @@ export interface User {
   selfAssessedLevel?: string;
   startDancingDate?: string;
   danceStyles?: string;
-  mainPhotoPath?: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface Event {
-  id: number; //
+  id: number;
   name: string;
   description: string;
   date: string;
@@ -85,12 +85,43 @@ export interface Review {
   revieweeName?: string;
   eventId?: number | null;
   eventName?: string | null;
-  leadRatings?: { [key: string]: number } | null;
-  followRatings?: { [key: string]: number } | null;
-  textReview?: string | null;
-  tags?: string[] | null;
+  leadRatings?: { [key: string]: number };
+  followRatings?: { [key: string]: number };
+  textReview?: string;
+  tags?: string[];
   isAnonymous: boolean;
   createdAt: string;
+}
+
+export interface CreateUserReviewPayload {
+  revieweeId: string;
+  eventId?: number | null;
+  leadRatings?: { [key: string]: number };
+  followRatings?: { [key: string]: number };
+  textReview?: string;
+  tags?: string[];
+  isAnonymous: boolean;
+}
+
+export interface EventReview {
+  id: number;
+  eventId: number;
+  eventName: string;
+  reviewerId: string;
+  reviewerName: string;
+  ratings?: { [key: string]: number };
+  textReview?: string;
+  tags?: string[];
+  isAnonymous: boolean;
+  createdAt: string;
+}
+
+export interface CreateEventReviewPayload {
+  eventId: number;
+  ratings?: { [key: string]: number };
+  textReview?: string;
+  tags?: string[];
+  isAnonymous: boolean;
 }
 
 export interface UserSettingsDto {
@@ -125,32 +156,22 @@ export const usersAPI = {
 export const reviewsAPI = {
   getReviews: () => api.get<Review[]>('/reviews'),
   getUserReviews: (userId: string) => api.get<Review[]>(`/reviews/user/${userId}`),
-  createReview: (data: {
-    revieweeId: string;
-    eventId?: number | null; // опционально
-    leadRatings?: { [key: string]: number };
-    followRatings?: { [key: string]: number };
-    textReview?: string;
-    tags?: string[];
-    isAnonymous: boolean;
-  }) => api.post<Review>('/reviews', data),
-  updateReview: (id: number, data: Partial<Review>) => api.put<Review>(`/reviews/${id}`, data),
-  deleteReview: (id: number) => api.delete(`/reviews/${id}`),
+  createReview: (data: CreateUserReviewPayload) => api.post<Review>('/reviews', data),
 };
 
 export const eventsAPI = {
   getEvents: () => api.get<Event[]>('/events'),
-  getEvent: (id: number) => api.get<Event>(`/events/${id}`), 
-  createEvent: (data: {
-    name: string;
-    description: string;
-    date: string;
-    location: string;
-  }) => api.post<Event>('/events', data),
+  getEvent: (id: number) => api.get<Event>(`/events/${id}`),
+  createEvent: (data: { name: string; description?: string; date: string; location?: string; }) => api.post<Event>('/events', data),
   updateEvent: (id: number, data: Partial<Event>) => api.put<Event>(`/events/${id}`, data),
   deleteEvent: (id: number) => api.delete(`/events/${id}`),
   joinEvent: (id: number) => api.post(`/events/${id}/join`),
   leaveEvent: (id: number) => api.post(`/events/${id}/leave`),
+};
+
+export const eventReviewsAPI = {
+  getByEvent: (eventId: number) => api.get<EventReview[]>(`/eventreviews/event/${eventId}`),
+  create: (data: CreateEventReviewPayload) => api.post<EventReview>('/eventreviews', data),
 };
 
 export const reportsAPI = {

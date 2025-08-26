@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { eventsAPI, Event } from '../services/api';
 import EventModal from '../components/EventModal';
+import EventReviewModal from '../components/EventReviewModal';
 
 const Events: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showEventReviewModal, setShowEventReviewModal] = useState(false);
+  const [eventToReview, setEventToReview] = useState<Event | null>(null);
 
   const fetchEvents = async () => {
     try {
@@ -135,9 +138,34 @@ const Events: React.FC = () => {
                   </button>
                 )}
               </div>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {event.isUserParticipating ? (
+                  <button onClick={() => handleLeaveEvent(event.id)} className="btn-secondary w-full">
+                    Leave Event
+                  </button>
+                ) : (
+                  <button onClick={() => handleJoinEvent(event.id)} className="btn-primary w-full">
+                    Join Event
+                  </button>
+                )}
+                <button
+                  onClick={() => { setEventToReview(event); setShowEventReviewModal(true); }}
+                  className="btn-primary w-full"
+                >
+                  Rate Event
+                </button>
+              </div>
             </div>
           ))}
         </div>
+      )}
+      {showEventReviewModal && eventToReview && (
+        <EventReviewModal
+          isOpen={showEventReviewModal}
+          onClose={() => { setShowEventReviewModal(false); setEventToReview(null); }}
+          eventId={eventToReview.id}
+          onSubmitted={fetchEvents}
+        />
       )}
 
       <EventModal

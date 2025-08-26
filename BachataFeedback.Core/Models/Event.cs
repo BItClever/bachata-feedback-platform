@@ -27,4 +27,5 @@ public class Event
     public User Creator { get; set; } = null!;
     public ICollection<EventParticipant> Participants { get; set; } = new List<EventParticipant>();
     public ICollection<Review> Reviews { get; set; } = new List<Review>();
+    public ICollection<EventReview> EventReviews { get; set; } = new List<EventReview>();
 }

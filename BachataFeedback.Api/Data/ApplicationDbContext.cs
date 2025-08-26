@@ -1,6 +1,7 @@
 ﻿using BachataFeedback.Core.Models;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace BachataFeedback.Api.Data;
 
@@ -16,6 +17,7 @@ public class ApplicationDbContext : IdentityDbContext<User>
     public DbSet<UserPhoto> UserPhotos { get; set; }
     public DbSet<UserSettings> UserSettings { get; set; }
     public DbSet<Report> Reports { get; set; }
+    public DbSet<EventReview> EventReviews { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -63,6 +65,24 @@ public class ApplicationDbContext : IdentityDbContext<User>
             .WithMany(e => e.Reviews)
             .HasForeignKey(r => r.EventId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // EventReview relationships
+        builder.Entity<EventReview>()
+            .HasOne(er => er.Event)
+            .WithMany(e => e.EventReviews)
+            .HasForeignKey(er => er.EventId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<EventReview>()
+            .HasOne(er => er.Event)
+            .WithMany()
+            .HasForeignKey(er => er.EventId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<EventReview>()
+            .HasOne(er => er.Reviewer)
+            .WithMany() 
+            .HasForeignKey(er => er.ReviewerId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // UserPhoto relationships
         builder.Entity<UserPhoto>()
