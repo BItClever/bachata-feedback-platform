@@ -10,7 +10,7 @@ public interface IUserService
 {
     Task<IEnumerable<UserProfileDto>> GetActiveUsersAsync();
     Task<UserProfileDto?> GetUserByIdAsync(string id);
-    Task<bool> UpdateUserProfileAsync(string userId, UpdateProfileDto model);
+    Task<UserProfileDto?> UpdateUserProfileAsync(string userId, UpdateProfileDto model);
     Task<UserProfileDto?> GetUserProfileAsync(string userId);
 }
 
@@ -72,10 +72,10 @@ public class UserService : IUserService
         };
     }
 
-    public async Task<bool> UpdateUserProfileAsync(string userId, UpdateProfileDto model)
+    public async Task<UserProfileDto?> UpdateUserProfileAsync(string userId, UpdateProfileDto model)
     {
         var user = await _context.Users.FindAsync(userId);
-        if (user == null) return false;
+        if (user == null) return null;
 
         user.FirstName = model.FirstName;
         user.LastName = model.LastName;
@@ -84,10 +84,31 @@ public class UserService : IUserService
         user.SelfAssessedLevel = model.SelfAssessedLevel;
         user.Bio = model.Bio;
         user.DanceStyles = model.DanceStyles;
-        user.DancerRole = model.DancerRole;
+
+        // если добавлено поле роли:
+        var dancerRoleProp = typeof(UpdateProfileDto).GetProperty("DancerRole");
+        if (dancerRoleProp != null)
+        {
+            var dancerRoleValue = (string?)dancerRoleProp.GetValue(model);
+            user.DancerRole = dancerRoleValue;
+        }
 
         await _context.SaveChangesAsync();
-        return true;
+
+        return new UserProfileDto
+        {
+            Id = user.Id,
+            Email = user.Email!,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Nickname = user.Nickname,
+            StartDancingDate = user.StartDancingDate,
+            SelfAssessedLevel = user.SelfAssessedLevel,
+            Bio = user.Bio,
+            DanceStyles = user.DanceStyles,
+            MainPhotoPath = user.MainPhotoPath,
+            CreatedAt = user.CreatedAt
+        };
     }
 
     public async Task<UserProfileDto?> GetUserProfileAsync(string userId)

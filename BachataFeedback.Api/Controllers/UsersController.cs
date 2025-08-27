@@ -60,10 +60,11 @@ public class UsersController : ControllerBase
         if (currentUser == null || currentUser.Id != id)
             return Forbid();
 
-        var success = await _userService.UpdateUserProfileAsync(id, model);
-        if (!success)
+        var updated = await _userService.UpdateUserProfileAsync(id, model);
+        if (updated == null)
             return NotFound(new { message = "User not found" });
 
-        return Ok(new { message = "Profile updated successfully" });
+        // Если добавили поле DancerRole в UserProfileDto — оно придет автоматически
+        return Ok(updated);
     }
 }

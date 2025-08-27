@@ -91,10 +91,26 @@ useEffect(() => {
         startDancingDate: formData.startDancingDate ? new Date(formData.startDancingDate).toISOString() : undefined
       };
 
-      const response = await usersAPI.updateUser(user.id.toString(), updateData);
-      updateUserData(response.data); // Используем updateUserData
-      setIsEditing(false);
-      setSuccess('Profile updated successfully!');
+      await usersAPI.updateUser(user.id.toString(), updateData);
+
+        // Сразу забираем актуальный профиль с сервера
+        const me = await usersAPI.getCurrentUser();
+        updateUserData(me.data);
+
+        // синхронизируем локальную форму с тем, что на сервере
+        setFormData({
+          firstName: me.data.firstName || '',
+          lastName: me.data.lastName || '',
+          nickname: me.data.nickname || '',
+          bio: me.data.bio || '',
+          selfAssessedLevel: me.data.selfAssessedLevel || '',
+          startDancingDate: me.data.startDancingDate ? me.data.startDancingDate.split('T')[0] : '',
+          danceStyles: me.data.danceStyles || '',
+          dancerRole: me.data.dancerRole || ''
+        });
+
+        setIsEditing(false);
+        setSuccess('Profile updated successfully!');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to update profile');
     } finally {
