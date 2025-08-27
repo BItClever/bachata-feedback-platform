@@ -47,6 +47,7 @@ public class UserProfileDto
     public string? DanceStyles { get; set; }
     public string? MainPhotoPath { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string? DancerRole { get; set; }
 }
 
 public class UpdateProfileDto
@@ -72,4 +73,6 @@ public class UpdateProfileDto
 
     [MaxLength(500)]
     public string? DanceStyles { get; set; }
+    [MaxLength(10)]
+    public string? DancerRole { get; set; }
 }

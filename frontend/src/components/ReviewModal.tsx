@@ -33,6 +33,9 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const selectedUser = users.find(u => u.id === selectedUserId);
+  const selectedUserRole = selectedUser?.dancerRole || 'Both';
+
   useEffect(() => {
     if (isOpen) {
       fetchEvents();
@@ -69,6 +72,25 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
     if (category === 'lead') setLeadRatings(prev => ({ ...prev, [key]: value }));
     else setFollowRatings(prev => ({ ...prev, [key]: value }));
   };
+
+  const allowedTypes: ReviewType[] =
+    selectedUserRole === 'Lead' ? ['lead'] :
+    selectedUserRole === 'Follow' ? ['follow'] :
+    ['lead', 'follow', 'both'];
+
+  useEffect(() => {
+    if (isOpen) {
+    // Если у автора явно Lead/Follow — предложить соответствующий тип по умолчанию
+    if (currentUser?.dancerRole === 'Lead') setReviewType('lead');
+    else if (currentUser?.dancerRole === 'Follow') setReviewType('follow');
+    else setReviewType('both');
+  }
+    if (!allowedTypes.includes(reviewType)) {
+      // Автоматически выставляем первый разрешенный тип
+      setReviewType(allowedTypes[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedUserRole, isOpen, currentUser?.dancerRole]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -200,13 +222,14 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-2">Review Type</label>
             <div className="flex gap-4">
               {(['lead','follow','both'] as ReviewType[]).map(rt => (
-                <label key={rt} className="flex items-center gap-2">
+                <label key={rt} className={`flex items-center gap-2 ${!allowedTypes.includes(rt) ? 'opacity-40 cursor-not-allowed' : ''}`}>
                   <input
                     type="radio"
                     name="reviewType"
                     value={rt}
                     checked={reviewType === rt}
-                    onChange={() => setReviewType(rt)}
+                    onChange={() => allowedTypes.includes(rt) && setReviewType(rt)}
+                    disabled={!allowedTypes.includes(rt)}
                   />
                   <span className="capitalize">{rt}</span>
                 </label>
@@ -214,8 +237,8 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
             </div>
           </div>
 
-          {(reviewType === 'lead' || reviewType === 'both') && renderBlock('Lead Skills', leadRatings, 'lead')}
-          {(reviewType === 'follow' || reviewType === 'both') && renderBlock('Follow Skills', followRatings, 'follow')}
+          {(reviewType === 'lead' || reviewType === 'both') && (selectedUserRole === 'Lead' || selectedUserRole === 'Both') && renderBlock('Lead Skills', leadRatings, 'lead')}
+          {(reviewType === 'follow' || reviewType === 'both') && (selectedUserRole === 'Follow' || selectedUserRole === 'Both') && renderBlock('Follow Skills', followRatings, 'follow')}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

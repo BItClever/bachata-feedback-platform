@@ -41,7 +41,8 @@ public class UserService : IUserService
                 Bio = u.Bio,
                 DanceStyles = u.DanceStyles,
                 MainPhotoPath = u.MainPhotoPath,
-                CreatedAt = u.CreatedAt
+                CreatedAt = u.CreatedAt,
+                DancerRole = u.DancerRole
             })
             .ToListAsync();
     }
@@ -66,7 +67,8 @@ public class UserService : IUserService
             Bio = user.Bio,
             DanceStyles = user.DanceStyles,
             MainPhotoPath = user.MainPhotoPath,
-            CreatedAt = user.CreatedAt
+            CreatedAt = user.CreatedAt,
+            DancerRole = user.DancerRole
         };
     }
 
@@ -82,6 +84,7 @@ public class UserService : IUserService
         user.SelfAssessedLevel = model.SelfAssessedLevel;
         user.Bio = model.Bio;
         user.DanceStyles = model.DanceStyles;
+        user.DancerRole = model.DancerRole;
 
         await _context.SaveChangesAsync();
         return true;

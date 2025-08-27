@@ -12,7 +12,8 @@ const Profile: React.FC = () => {
     bio: user?.bio || '',
     selfAssessedLevel: user?.selfAssessedLevel || '',
     startDancingDate: user?.startDancingDate ? user.startDancingDate.split('T')[0] : '',
-    danceStyles: user?.danceStyles || ''
+    danceStyles: user?.danceStyles || '',
+    dancerRole: user?.dancerRole || ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -244,6 +245,22 @@ useEffect(() => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Dancer Role
+                </label>
+                <select
+                  name="dancerRole"
+                  className="input-field"
+                  value={formData.dancerRole}
+                  onChange={handleChange}
+                >
+                  <option value="">Select role</option>
+                  <option value="Lead">Lead</option>
+                  <option value="Follow">Follow</option>
+                  <option value="Both">Both</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Started Dancing
                 </label>
                 <input
@@ -319,6 +336,12 @@ useEffect(() => {
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Level</h3>
                   <p className="text-gray-700">{user.selfAssessedLevel}</p>
                 </div>
+              )}
+              {user?.dancerRole && (
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Role</h3>
+                <p className="text-gray-700">{user.dancerRole}</p>
+              </div>
               )}
               {user?.startDancingDate && (
                 <div>

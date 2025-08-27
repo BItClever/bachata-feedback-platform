@@ -61,6 +61,7 @@ export interface User {
   danceStyles?: string;
   createdAt: string;
   updatedAt: string;
+  dancerRole?: string; // "Lead" | "Follow" | "Both"
 }
 
 export interface Event {

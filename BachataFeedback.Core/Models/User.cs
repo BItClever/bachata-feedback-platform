@@ -32,6 +32,8 @@ public class User : IdentityUser
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public bool IsActive { get; set; } = true;
+    [MaxLength(10)]
+    public string? DancerRole { get; set; } // "Lead", "Follow", "Both"
 
     // Navigation properties
     public UserSettings? Settings { get; set; }
