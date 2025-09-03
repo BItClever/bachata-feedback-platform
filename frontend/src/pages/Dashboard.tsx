@@ -117,7 +117,11 @@ const Dashboard: React.FC = () => {
                         </>
                       )}
                     </div>
-                    {r.textReview && <p className="text-gray-700 mt-1">{r.textReview}</p>}
+                    {r.textReview ? (
+                      <p className="text-gray-700 mt-1">{r.textReview}</p>
+                    ) : (
+                      <p className="text-gray-400 mt-1">Hidden by privacy settings</p>
+                    )}
                     <p className="text-sm text-gray-500 mt-2">
                       {new Date(r.createdAt).toLocaleDateString()}
                     </p>

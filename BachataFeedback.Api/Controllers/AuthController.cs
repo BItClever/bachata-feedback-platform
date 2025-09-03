@@ -1,4 +1,5 @@
-﻿using BachataFeedback.Api.Services;
+﻿using BachataFeedback.Api.Data;
+using BachataFeedback.Api.Services;
 using BachataFeedback.Core.DTOs;
 using BachataFeedback.Core.Models;
 using Microsoft.AspNetCore.Identity;
@@ -13,12 +14,14 @@ public class AuthController : ControllerBase
     private readonly UserManager<User> _userManager;
     private readonly SignInManager<User> _signInManager;
     private readonly ITokenService _tokenService;
+    private readonly ApplicationDbContext _context;
 
-    public AuthController(UserManager<User> userManager, SignInManager<User> signInManager, ITokenService tokenService)
+    public AuthController(UserManager<User> userManager, SignInManager<User> signInManager, ITokenService tokenService, ApplicationDbContext context)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _tokenService = tokenService;
+        _context = context;
     }
 
     [HttpPost("register")]
@@ -40,6 +43,21 @@ public class AuthController : ControllerBase
 
         if (result.Succeeded)
         {
+            // Создаём дефолтные настройки
+            if (await _context.UserSettings.FindAsync(user.Id) is null)
+            {
+                _context.UserSettings.Add(new UserSettings
+                {
+                    UserId = user.Id,
+                    AllowReviews = true,
+                    ShowRatingsToOthers = true,
+                    ShowTextReviewsToOthers = true,
+                    AllowAnonymousReviews = true,
+                    ShowPhotosToGuests = true
+                });
+                await _context.SaveChangesAsync();
+            }
+
             var token = await _tokenService.GenerateTokenAsync(user);
 
             return Ok(new

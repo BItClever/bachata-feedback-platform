@@ -32,40 +32,64 @@ public class UserSettingsController : ControllerBase
     [HttpGet("me")]
     public async Task<IActionResult> GetMySettings()
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null) return Unauthorized();
+        var currentUser = await _userManager.GetUserAsync(User);
+        if (currentUser == null) return Unauthorized();
 
-        var s = await _context.UserSettings.FindAsync(user.Id) ?? new UserSettings { UserId = user.Id };
-        return Ok(new UpdateSettingsDto
+        var settings = await _context.UserSettings.FindAsync(currentUser.Id);
+        if (settings == null)
         {
-            AllowReviews = s.AllowReviews,
-            ShowRatingsToOthers = s.ShowRatingsToOthers,
-            ShowTextReviewsToOthers = s.ShowTextReviewsToOthers,
-            AllowAnonymousReviews = s.AllowAnonymousReviews,
-            ShowPhotosToGuests = s.ShowPhotosToGuests
+            settings = new UserSettings
+            {
+                UserId = currentUser.Id,
+                AllowReviews = true,
+                ShowRatingsToOthers = true,
+                ShowTextReviewsToOthers = true,
+                AllowAnonymousReviews = true,
+                ShowPhotosToGuests = true
+            };
+            _context.UserSettings.Add(settings);
+            await _context.SaveChangesAsync();
+        }
+
+        return Ok(new
+        {
+            settings.AllowReviews,
+            settings.ShowRatingsToOthers,
+            settings.ShowTextReviewsToOthers,
+            settings.AllowAnonymousReviews,
+            settings.ShowPhotosToGuests
         });
     }
 
     [HttpPut("me")]
     public async Task<IActionResult> UpdateMySettings([FromBody] UpdateSettingsDto dto)
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null) return Unauthorized();
+        var currentUser = await _userManager.GetUserAsync(User);
+        if (currentUser == null) return Unauthorized();
 
-        var s = await _context.UserSettings.FindAsync(user.Id);
-        if (s == null)
+        var settings = await _context.UserSettings.FindAsync(currentUser.Id);
+        if (settings == null)
         {
-            s = new UserSettings { UserId = user.Id };
-            _context.UserSettings.Add(s);
+            // ленивое создание при первом обновлении
+            settings = new UserSettings { UserId = currentUser.Id };
+            _context.UserSettings.Add(settings);
         }
 
-        s.AllowReviews = dto.AllowReviews;
-        s.ShowRatingsToOthers = dto.ShowRatingsToOthers;
-        s.ShowTextReviewsToOthers = dto.ShowTextReviewsToOthers;
-        s.AllowAnonymousReviews = dto.AllowAnonymousReviews;
-        s.ShowPhotosToGuests = dto.ShowPhotosToGuests;
+        settings.AllowReviews = dto.AllowReviews;
+        settings.ShowRatingsToOthers = dto.ShowRatingsToOthers;
+        settings.ShowTextReviewsToOthers = dto.ShowTextReviewsToOthers;
+        settings.AllowAnonymousReviews = dto.AllowAnonymousReviews;
+        settings.ShowPhotosToGuests = dto.ShowPhotosToGuests;
 
         await _context.SaveChangesAsync();
-        return Ok(new { message = "Settings updated" });
+
+        return Ok(new
+        {
+            settings.AllowReviews,
+            settings.ShowRatingsToOthers,
+            settings.ShowTextReviewsToOthers,
+            settings.AllowAnonymousReviews,
+            settings.ShowPhotosToGuests
+        });
     }
 }

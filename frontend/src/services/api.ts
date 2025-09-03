@@ -181,8 +181,14 @@ export const reportsAPI = {
 };
 
 export const userSettingsAPI = {
-  getMine: () => api.get<UserSettingsDto>('/userSettings/me'),
-  updateMine: (data: UserSettingsDto) => api.put('/userSettings/me', data),
+  getMine: () => api.get('/usersettings/me'),
+  updateMine: (data: {
+    allowReviews: boolean;
+    showRatingsToOthers: boolean;
+    showTextReviewsToOthers: boolean;
+    allowAnonymousReviews: boolean;
+    showPhotosToGuests: boolean;
+  }) => api.put('/usersettings/me', data),
 };
 
 export default api;

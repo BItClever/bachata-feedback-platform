@@ -87,9 +87,24 @@ public class ReviewService : IReviewService
         if (reviewerId == model.RevieweeId)
             throw new ApplicationException("Cannot review yourself");
 
-        var reviewee = await _context.Users.FindAsync(model.RevieweeId);
+        // загрузка настроек reviewee
+        var reviewee = await _context.Users
+            .Include(u => u.Settings)
+            .FirstOrDefaultAsync(u => u.Id == model.RevieweeId);
+
         if (reviewee == null)
             throw new KeyNotFoundException("Reviewee not found");
+
+        if (reviewee == null)
+            throw new KeyNotFoundException("Reviewee not found");
+
+        // Приватность: разрешение на отзывы
+        if (reviewee.Settings != null && !reviewee.Settings.AllowReviews)
+            throw new ApplicationException("User does not allow reviews");
+
+        // Приватность: анонимные отзывы запрещены
+        if (model.IsAnonymous && reviewee.Settings != null && !reviewee.Settings.AllowAnonymousReviews)
+            throw new ApplicationException("Anonymous reviews are not allowed by this user");
 
         // Настройки приватности reviewee
         var settings = await _context.UserSettings.FindAsync(model.RevieweeId);
