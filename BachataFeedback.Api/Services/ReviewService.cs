@@ -95,9 +95,6 @@ public class ReviewService : IReviewService
         if (reviewee == null)
             throw new KeyNotFoundException("Reviewee not found");
 
-        if (reviewee == null)
-            throw new KeyNotFoundException("Reviewee not found");
-
         // Приватность: разрешение на отзывы
         if (reviewee.Settings != null && !reviewee.Settings.AllowReviews)
             throw new ApplicationException("User does not allow reviews");
