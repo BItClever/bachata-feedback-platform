@@ -4,6 +4,7 @@ using BachataFeedback.Api.Services;
 using BachataFeedback.Core.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -14,11 +15,11 @@ var builder = WebApplication.CreateBuilder(args);
 // Database configuration
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
-        mySqlOptions => mySqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 5,
-            maxRetryDelay: TimeSpan.FromSeconds(30),
-            errorNumbersToAdd: null)));
+options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
+mySqlOptions => mySqlOptions.EnableRetryOnFailure(
+maxRetryCount: 5,
+maxRetryDelay: TimeSpan.FromSeconds(30),
+errorNumbersToAdd: null)));
 
 // Identity configuration
 builder.Services.AddIdentity<User, IdentityRole>(options =>
@@ -68,11 +69,26 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 
 builder.Services.AddControllers();
+
+// Унификация ответа при невалидной модели
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var errors = context.ModelState
+        .Where(kvp => kvp.Value?.Errors.Count > 0)
+        .SelectMany(kvp => kvp.Value!.Errors)
+        .Select(e => e.ErrorMessage)
+        .ToArray();
+        var message = errors.Length > 0 ? string.Join("; ", errors) : "Invalid request";
+        return new BadRequestObjectResult(new { success = false, message });
+    };
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "Bachata Feedback API", Version = "v1" });
-
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
@@ -83,30 +99,34 @@ builder.Services.AddSwaggerGen(c =>
     });
 
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
+{
     {
+        new OpenApiSecurityScheme
         {
-            new OpenApiSecurityScheme
+            Reference = new OpenApiReference
             {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
+                Type = ReferenceType.SecurityScheme,
+                Id = "Bearer"
+            }
+        },
+        Array.Empty<string>()
+    }
+});
 });
 
-// CORS for development
+// CORS: белый список доменов фронта/API
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("Frontend", policy =>
     {
-        policy.AllowAnyHeader()
-              .AllowAnyMethod()
-              .SetIsOriginAllowed(origin => true)
-              .AllowCredentials();
+        policy.WithOrigins(
+        "https://bachata.alexei.site",
+        "https://api-bachata.alexei.site",
+        "http://localhost:3000",
+        "http://localhost:5000")
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials();
     });
 });
 
@@ -126,8 +146,10 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-    app.UseCors("AllowAll");
 }
+
+// Включаем CORS всегда
+app.UseCors("Frontend");
 
 app.UseAuthentication();
 app.UseAuthorization();

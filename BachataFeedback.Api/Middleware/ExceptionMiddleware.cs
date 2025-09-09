@@ -7,7 +7,6 @@ public class ExceptionMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionMiddleware> _logger;
-
     public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
     {
         _next = next;
@@ -22,7 +21,7 @@ public class ExceptionMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Something went wrong");
+            _logger.LogError(ex, "Unhandled exception");
             await HandleExceptionAsync(httpContext, ex);
         }
     }
@@ -32,38 +31,33 @@ public class ExceptionMiddleware
         context.Response.ContentType = "application/json";
         var response = context.Response;
 
-        var errorResponse = new ErrorResponse
-        {
-            Success = false
-        };
+        string message;
+        int statusCode;
 
         switch (exception)
         {
             case ApplicationException ex:
-                errorResponse.Message = ex.Message;
-                response.StatusCode = (int)HttpStatusCode.BadRequest;
+                message = ex.Message;
+                statusCode = (int)HttpStatusCode.BadRequest;
                 break;
             case KeyNotFoundException ex:
-                errorResponse.Message = ex.Message;
-                response.StatusCode = (int)HttpStatusCode.NotFound;
+                message = ex.Message;
+                statusCode = (int)HttpStatusCode.NotFound;
                 break;
             case UnauthorizedAccessException ex:
-                errorResponse.Message = ex.Message;
-                response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                message = ex.Message;
+                statusCode = (int)HttpStatusCode.Unauthorized;
                 break;
             default:
-                errorResponse.Message = "Internal Server Error";
-                response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                message = "Internal Server Error";
+                statusCode = (int)HttpStatusCode.InternalServerError;
                 break;
         }
 
-        var jsonResponse = JsonSerializer.Serialize(errorResponse);
-        await context.Response.WriteAsync(jsonResponse);
-    }
-}
+        response.StatusCode = statusCode;
 
-public class ErrorResponse
-{
-    public bool Success { get; set; }
-    public string Message { get; set; } = string.Empty;
+        var payload = new { success = false, message };
+        var json = JsonSerializer.Serialize(payload);
+        await context.Response.WriteAsync(json);
+    }
 }
