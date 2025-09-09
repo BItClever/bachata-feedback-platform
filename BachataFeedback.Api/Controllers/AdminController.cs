@@ -151,13 +151,25 @@ public class AdminController : ControllerBase
         report.Status = "Resolved";
         report.ResolvedAt = DateTime.UtcNow;
 
-        if (model.DeleteTarget && report.TargetType == "Review")
+        if (model.DeleteTarget)
         {
-            var review = await _context.Reviews.FindAsync(report.TargetId);
-            if (review != null)
+            if (report.TargetType == "Review")
             {
-                _context.Reviews.Remove(review);
+                var review = await _context.Reviews.FindAsync(report.TargetId);
+                if (review != null)
+                {
+                    _context.Reviews.Remove(review);
+                }
             }
+            else if (report.TargetType == "EventReview")
+            {
+                var evReview = await _context.EventReviews.FindAsync(report.TargetId);
+                if (evReview != null)
+                {
+                    _context.EventReviews.Remove(evReview);
+                }
+            }
+            // TargetType "Photo" можно обработать аналогично при необходимости
         }
 
         await _context.SaveChangesAsync();
@@ -202,7 +214,6 @@ public class AdminController : ControllerBase
     [AllowAnonymous] // Только для первоначальной настройки
     public async Task<IActionResult> CreateAdmin([FromBody] CreateAdminDto model)
     {
-        // Проверяем, есть ли уже админы
         var adminRole = await _roleManager.FindByNameAsync("Admin");
         if (adminRole != null)
         {
@@ -211,7 +222,6 @@ public class AdminController : ControllerBase
                 return BadRequest(new { message = "Admin already exists" });
         }
 
-        // Создаем роль Admin если её нет
         if (adminRole == null)
         {
             adminRole = new IdentityRole("Admin");

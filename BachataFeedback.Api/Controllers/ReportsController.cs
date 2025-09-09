@@ -22,9 +22,9 @@ public class ReportsController : ControllerBase
 
     public class CreateReportDto
     {
-        public string TargetType { get; set; } = string.Empty; // "Review" | "Photo"
+        public string TargetType { get; set; } = string.Empty; // "Review" | "Photo" | "EventReview"
         public int TargetId { get; set; }
-        public string Reason { get; set; } = string.Empty;      // "Spam", "Inappropriate", ...
+        public string Reason { get; set; } = string.Empty;
         public string? Description { get; set; }
     }
 
@@ -34,8 +34,8 @@ public class ReportsController : ControllerBase
         var currentUser = await _userManager.GetUserAsync(User);
         if (currentUser == null) return Unauthorized();
 
-        if (dto.TargetType != "Review" && dto.TargetType != "Photo")
-            return BadRequest(new { message = "Invalid target type" });
+        if (dto.TargetType != "Review" && dto.TargetType != "Photo" && dto.TargetType != "EventReview")
+            return BadRequest(new { success = false, message = "Invalid target type" });
 
         var report = new Report
         {
@@ -50,6 +50,6 @@ public class ReportsController : ControllerBase
 
         _context.Reports.Add(report);
         await _context.SaveChangesAsync();
-        return Ok(new { message = "Report submitted" });
+        return Ok(new { success = true, message = "Report submitted" });
     }
 }
