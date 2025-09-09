@@ -27,7 +27,7 @@ public class ReviewService : IReviewService
     {
         var dto = MapToReviewDto(review);
 
-        // если смотрит сам владелец профиля (review.RevieweeId == requestorId) — показываем всё
+        // если смотрит сам владелец профиля — показываем всё
         if (requestorId != null && review.RevieweeId == requestorId)
             return dto;
 
@@ -83,11 +83,9 @@ public class ReviewService : IReviewService
 
     public async Task<ReviewDto?> CreateReviewAsync(string reviewerId, CreateReviewDto model)
     {
-        // Проверки
         if (reviewerId == model.RevieweeId)
             throw new ApplicationException("Cannot review yourself");
 
-        // загрузка настроек reviewee
         var reviewee = await _context.Users
             .Include(u => u.Settings)
             .FirstOrDefaultAsync(u => u.Id == model.RevieweeId);
@@ -95,21 +93,13 @@ public class ReviewService : IReviewService
         if (reviewee == null)
             throw new KeyNotFoundException("Reviewee not found");
 
-        // Приватность: разрешение на отзывы
         if (reviewee.Settings != null && !reviewee.Settings.AllowReviews)
             throw new ApplicationException("User does not allow reviews");
 
-        // Приватность: анонимные отзывы запрещены
         if (model.IsAnonymous && reviewee.Settings != null && !reviewee.Settings.AllowAnonymousReviews)
             throw new ApplicationException("Anonymous reviews are not allowed by this user");
 
-        // Настройки приватности reviewee
-        var settings = await _context.UserSettings.FindAsync(model.RevieweeId);
-        // Если настроек нет, считаем значения по умолчанию (как в модели)
-        bool allowReviews = settings?.AllowReviews ?? true;
-        bool allowAnonymous = settings?.AllowAnonymousReviews ?? true;
-
-        // Проверка участия в событии
+        // Проверка участия в событии (если указан eventId)
         if (model.EventId.HasValue)
         {
             var eventExists = await _context.Events.AnyAsync(e => e.Id == model.EventId.Value);
@@ -120,12 +110,6 @@ public class ReviewService : IReviewService
             if (!canReview)
                 throw new ApplicationException("Both users must have participated in the event");
         }
-
-        if (!allowReviews)
-            throw new ApplicationException("This user does not accept reviews");
-
-        if (model.IsAnonymous && !allowAnonymous)
-            throw new ApplicationException("Anonymous reviews are not allowed by this user");
 
         // Ограничение частоты: один отзыв раз в 14 дней без события
         if (model.EventId == null)
@@ -142,13 +126,27 @@ public class ReviewService : IReviewService
                 throw new ApplicationException("You can leave a non-event review for this user once every 14 days");
         }
 
+        // Санитизация и валидация рейтингов (1..5), игнорируем нули/мусор
+        static Dictionary<string, int>? SanitizeRatings(Dictionary<string, int>? src)
+        {
+            if (src == null) return null;
+            var filtered = src
+                .Where(kv => kv.Value >= 1 && kv.Value <= 5)
+                .ToDictionary(kv => kv.Key, kv => kv.Value);
+
+            return filtered.Count > 0 ? filtered : null;
+        }
+
+        var lead = SanitizeRatings(model.LeadRatings);
+        var follow = SanitizeRatings(model.FollowRatings);
+
         var review = new Review
         {
             ReviewerId = reviewerId,
             RevieweeId = model.RevieweeId,
             EventId = model.EventId,
-            LeadRatings = model.LeadRatings != null ? JsonSerializer.Serialize(model.LeadRatings) : null,
-            FollowRatings = model.FollowRatings != null ? JsonSerializer.Serialize(model.FollowRatings) : null,
+            LeadRatings = lead != null ? JsonSerializer.Serialize(lead) : null,
+            FollowRatings = follow != null ? JsonSerializer.Serialize(follow) : null,
             TextReview = model.TextReview,
             Tags = model.Tags != null ? JsonSerializer.Serialize(model.Tags) : null,
             IsAnonymous = model.IsAnonymous
@@ -157,19 +155,10 @@ public class ReviewService : IReviewService
         _context.Reviews.Add(review);
         await _context.SaveChangesAsync();
 
-        // Загружаем связанные данные для ответа
-        await _context.Entry(review)
-            .Reference(r => r.Reviewer)
-            .LoadAsync();
-        await _context.Entry(review)
-            .Reference(r => r.Reviewee)
-            .LoadAsync();
+        await _context.Entry(review).Reference(r => r.Reviewer).LoadAsync();
+        await _context.Entry(review).Reference(r => r.Reviewee).LoadAsync();
         if (review.EventId.HasValue)
-        {
-            await _context.Entry(review)
-                .Reference(r => r.Event)
-                .LoadAsync();
-        }
+            await _context.Entry(review).Reference(r => r.Event).LoadAsync();
 
         var reviewDto = MapToReviewDto(review);
         return reviewDto;
@@ -186,11 +175,6 @@ public class ReviewService : IReviewService
             .AnyAsync(ep => ep.EventId == eventId.Value && ep.UserId == revieweeId);
 
         return reviewerParticipated && revieweeParticipated;
-    }
-
-    private static IEnumerable<ReviewDto> MapToReviewDtos(IEnumerable<Review> reviews)
-    {
-        return reviews.Select(MapToReviewDto);
     }
 
     private static ReviewDto MapToReviewDto(Review review)
