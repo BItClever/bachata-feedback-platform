@@ -74,13 +74,8 @@ public class ApplicationDbContext : IdentityDbContext<User>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Entity<EventReview>()
-            .HasOne(er => er.Event)
-            .WithMany()
-            .HasForeignKey(er => er.EventId)
-            .OnDelete(DeleteBehavior.Cascade);
-        builder.Entity<EventReview>()
             .HasOne(er => er.Reviewer)
-            .WithMany() 
+            .WithMany()
             .HasForeignKey(er => er.ReviewerId)
             .OnDelete(DeleteBehavior.Restrict);
 
