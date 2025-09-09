@@ -63,13 +63,29 @@ public class EventReviewsController : ControllerBase
 
         var ev = await _context.Events.FindAsync(model.EventId);
         if (ev == null)
-            return BadRequest(new { message = "Event not found" });
+            return BadRequest(new { success = false, message = "Event not found" });
+
+        // Только участники могут оставлять отзыв о событии
+        var isParticipant = await _context.EventParticipants
+            .AnyAsync(ep => ep.EventId == model.EventId && ep.UserId == currentUser.Id);
+
+        if (!isParticipant)
+            return BadRequest(new { success = false, message = "Only event participants can leave a review" });
+
+        static Dictionary<string, int>? SanitizeRatings(Dictionary<string, int>? src)
+        {
+            if (src == null) return null;
+            var filtered = src.Where(kv => kv.Value >= 1 && kv.Value <= 5).ToDictionary(kv => kv.Key, kv => kv.Value);
+            return filtered.Count > 0 ? filtered : null;
+        }
+
+        var ratings = SanitizeRatings(model.Ratings);
 
         var review = new EventReview
         {
             ReviewerId = currentUser.Id,
             EventId = model.EventId,
-            Ratings = model.Ratings != null ? JsonSerializer.Serialize(model.Ratings) : null,
+            Ratings = ratings != null ? JsonSerializer.Serialize(ratings) : null,
             TextReview = model.TextReview,
             Tags = model.Tags != null ? JsonSerializer.Serialize(model.Tags) : null,
             IsAnonymous = model.IsAnonymous
@@ -78,7 +94,6 @@ public class EventReviewsController : ControllerBase
         _context.EventReviews.Add(review);
         await _context.SaveChangesAsync();
 
-        // load navs
         await _context.Entry(review).Reference(r => r.Event).LoadAsync();
         await _context.Entry(review).Reference(r => r.Reviewer).LoadAsync();
 
@@ -89,7 +104,7 @@ public class EventReviewsController : ControllerBase
             EventName = review.Event.Name,
             ReviewerId = review.ReviewerId,
             ReviewerName = review.IsAnonymous ? "Anonymous" : $"{currentUser.FirstName} {currentUser.LastName}",
-            Ratings = model.Ratings,
+            Ratings = ratings,
             TextReview = review.TextReview,
             Tags = model.Tags,
             IsAnonymous = review.IsAnonymous,
