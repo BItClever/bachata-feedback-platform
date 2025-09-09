@@ -22,9 +22,9 @@ const EventReviewModal: React.FC<Props> = ({ isOpen, onClose, eventId, onSubmitt
   const setRating = (k: string, v: number) =>
     setRatings(prev => ({ ...prev, [k]: v }));
 
-  const StarInput = ({ value, onChange }: { value: number; onChange: (n:number)=>void }) => (
+  const StarInput = ({ value, onChange }: { value: number; onChange: (n: number) => void }) => (
     <div className="flex space-x-1">
-      {[1,2,3,4,5].map(star => (
+      {[1, 2, 3, 4, 5].map(star => (
         <button
           type="button"
           key={star}
@@ -40,14 +40,20 @@ const EventReviewModal: React.FC<Props> = ({ isOpen, onClose, eventId, onSubmitt
     </div>
   );
 
+  const sanitizeRatings = (obj: Record<string, number>) => {
+    const entries = Object.entries(obj).filter(([_, v]) => v >= 1 && v <= 5);
+    return entries.length ? Object.fromEntries(entries) : undefined;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
     try {
+      const ratingsSan = sanitizeRatings(ratings);
       await eventReviewsAPI.create({
         eventId,
-        ratings,
+        ratings: ratingsSan,
         textReview: textReview || undefined,
         tags: undefined,
         isAnonymous,
@@ -58,7 +64,8 @@ const EventReviewModal: React.FC<Props> = ({ isOpen, onClose, eventId, onSubmitt
       setTextReview('');
       setIsAnonymous(false);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to submit event review');
+      const msg = err.response?.data?.message || err.response?.data?.Message || 'Failed to submit event review';
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +82,6 @@ const EventReviewModal: React.FC<Props> = ({ isOpen, onClose, eventId, onSubmitt
             </svg>
           </button>
         </div>
-
         {error && (
           <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             {error}
@@ -83,10 +89,10 @@ const EventReviewModal: React.FC<Props> = ({ isOpen, onClose, eventId, onSubmitt
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {Object.entries(ratings).map(([k,v]) => (
+          {Object.entries(ratings).map(([k, v]) => (
             <div key={k} className="flex items-center justify-between">
               <span className="capitalize text-gray-700">{k}</span>
-              <StarInput value={v} onChange={(n)=>setRating(k, n)} />
+              <StarInput value={v} onChange={(n) => setRating(k, n)} />
             </div>
           ))}
 
@@ -95,7 +101,7 @@ const EventReviewModal: React.FC<Props> = ({ isOpen, onClose, eventId, onSubmitt
             <textarea
               className="input-field h-24"
               value={textReview}
-              onChange={(e)=>setTextReview(e.target.value)}
+              onChange={(e) => setTextReview(e.target.value)}
               placeholder="What did you like about the event?"
             />
           </div>
@@ -105,7 +111,7 @@ const EventReviewModal: React.FC<Props> = ({ isOpen, onClose, eventId, onSubmitt
               type="checkbox"
               id="isAnonymousEvent"
               checked={isAnonymous}
-              onChange={(e)=>setIsAnonymous(e.target.checked)}
+              onChange={(e) => setIsAnonymous(e.target.checked)}
               className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
             />
             <label htmlFor="isAnonymousEvent" className="ml-2 block text-sm text-gray-900">

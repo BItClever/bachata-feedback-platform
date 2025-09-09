@@ -75,34 +75,39 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
 
   const allowedTypes: ReviewType[] =
     selectedUserRole === 'Lead' ? ['lead'] :
-    selectedUserRole === 'Follow' ? ['follow'] :
-    ['lead', 'follow', 'both'];
+      selectedUserRole === 'Follow' ? ['follow'] :
+        ['lead', 'follow', 'both'];
 
   useEffect(() => {
     if (isOpen) {
-    // Если у автора явно Lead/Follow — предложить соответствующий тип по умолчанию
-    if (currentUser?.dancerRole === 'Lead') setReviewType('lead');
-    else if (currentUser?.dancerRole === 'Follow') setReviewType('follow');
-    else setReviewType('both');
-  }
+      if (currentUser?.dancerRole === 'Lead') setReviewType('lead');
+      else if (currentUser?.dancerRole === 'Follow') setReviewType('follow');
+      else setReviewType('both');
+    }
     if (!allowedTypes.includes(reviewType)) {
-      // Автоматически выставляем первый разрешенный тип
       setReviewType(allowedTypes[0]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUserRole, isOpen, currentUser?.dancerRole]);
 
+  const sanitizeRatings = (obj: Record<string, number>) => {
+    const entries = Object.entries(obj).filter(([_, v]) => v >= 1 && v <= 5);
+    return entries.length ? Object.fromEntries(entries) : undefined;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-
     try {
+      const leadSan = reviewType === 'follow' ? undefined : sanitizeRatings(leadRatings);
+      const followSan = reviewType === 'lead' ? undefined : sanitizeRatings(followRatings);
+
       const payload = {
         revieweeId: selectedUserId,
         eventId: selectedEventId ? Number(selectedEventId) : null,
-        leadRatings: reviewType === 'follow' ? undefined : leadRatings,
-        followRatings: reviewType === 'lead' ? undefined : followRatings,
+        leadRatings: leadSan,
+        followRatings: followSan,
         textReview: textReview || undefined,
         tags: undefined,
         isAnonymous
@@ -121,7 +126,8 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
       setTextReview('');
       setIsAnonymous(false);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to submit review');
+      const msg = err.response?.data?.message || err.response?.data?.Message || 'Failed to submit review';
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
@@ -133,7 +139,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
     value, onChange
   }: { value: number; onChange: (n: number) => void }) => (
     <div className="flex space-x-1">
-      {[1,2,3,4,5].map(star => (
+      {[1, 2, 3, 4, 5].map(star => (
         <button
           type="button"
           key={star}
@@ -149,11 +155,11 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
     </div>
   );
 
-  const renderBlock = (title: string, state: Record<string, number>, category: 'lead'|'follow') => (
+  const renderBlock = (title: string, state: Record<string, number>, category: 'lead' | 'follow') => (
     <div>
       <h3 className="text-lg font-medium text-gray-900 mb-3">{title}</h3>
       <div className="space-y-3">
-        {Object.entries(state).map(([k,v]) => (
+        {Object.entries(state).map(([k, v]) => (
           <div key={k} className="flex items-center justify-between">
             <span className="capitalize text-gray-700">{k}</span>
             <StarInput value={v} onChange={(n) => setRating(category, k, n)} />
@@ -174,7 +180,6 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
             </svg>
           </button>
         </div>
-
         {error && (
           <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             {error}
@@ -221,7 +226,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Review Type</label>
             <div className="flex gap-4">
-              {(['lead','follow','both'] as ReviewType[]).map(rt => (
+              {(['lead', 'follow', 'both'] as ReviewType[]).map(rt => (
                 <label key={rt} className={`flex items-center gap-2 ${!allowedTypes.includes(rt) ? 'opacity-40 cursor-not-allowed' : ''}`}>
                   <input
                     type="radio"

@@ -1,8 +1,6 @@
-import axios, { AxiosResponse } from 'axios';
+import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-
-console.log('API Base URL:', API_BASE_URL);
 
 // Создаем экземпляр axios
 const api = axios.create({
@@ -12,38 +10,30 @@ const api = axios.create({
   },
 });
 
-// Интерцептор для добавления токена ко всем запросам
+// Интерцептор: добавляем токен
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-      console.log('Adding token to request:', config.url, 'Token exists:', !!token);
-    } else {
-      console.log('No token found for request:', config.url);
+      (config.headers as any).Authorization = 'Bearer ${ token }';
     }
     return config;
   },
   (error) => {
-    console.error('Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
 
-// Интерцептор для обработки ответов
+// Интерцептор: обработка ответов/ошибок
 api.interceptors.response.use(
-  (response) => {
-    console.log('Response received:', response.config.url, response.status);
-    return response;
-  },
+  (response) => response,
   (error) => {
-    console.error('Response error:', error.config?.url, error.response?.status, error.response?.data);
-    
+    // 401 — выходим и на /login
     if (error.response?.status === 401) {
-      console.log('401 error - clearing tokens and redirecting to login');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
+      return;
     }
     return Promise.reject(error);
   }
@@ -149,34 +139,34 @@ export const authAPI = {
 
 export const usersAPI = {
   getUsers: () => api.get<User[]>('/users'),
-  getUser: (id: string) => api.get<User>(`/users/${id}`),
+  getUser: (id: string) => api.get<User>('/users/${id}'),
   getCurrentUser: () => api.get<User>('/users/me'),
-  updateUser: (id: string, data: Partial<User>) => api.put<User>(`/users/${id}`, data),
+  updateUser: (id: string, data: Partial<User>) => api.put<User>('/users/${id}', data),
 };
 
 export const reviewsAPI = {
   getReviews: () => api.get<Review[]>('/reviews'),
-  getUserReviews: (userId: string) => api.get<Review[]>(`/reviews/user/${userId}`),
+  getUserReviews: (userId: string) => api.get<Review[]>('/reviews/user / ${userId}'),
   createReview: (data: CreateUserReviewPayload) => api.post<Review>('/reviews', data),
 };
 
 export const eventsAPI = {
   getEvents: () => api.get<Event[]>('/events'),
-  getEvent: (id: number) => api.get<Event>(`/events/${id}`),
+  getEvent: (id: number) => api.get<Event>('/events/${id}'),
   createEvent: (data: { name: string; description?: string; date: string; location?: string; }) => api.post<Event>('/events', data),
-  updateEvent: (id: number, data: Partial<Event>) => api.put<Event>(`/events/${id}`, data),
-  deleteEvent: (id: number) => api.delete(`/events/${id}`),
-  joinEvent: (id: number) => api.post(`/events/${id}/join`),
-  leaveEvent: (id: number) => api.post(`/events/${id}/leave`),
+  updateEvent: (id: number, data: Partial<Event>) => api.put<Event>('/events/${id}', data),
+  deleteEvent: (id: number) => api.delete('/events/${id}'),
+  joinEvent: (id: number) => api.post('/events/${id}/join'),
+  leaveEvent: (id: number) => api.post('/events/${id}/leave'),
 };
 
 export const eventReviewsAPI = {
-  getByEvent: (eventId: number) => api.get<EventReview[]>(`/eventreviews/event/${eventId}`),
+  getByEvent: (eventId: number) => api.get<EventReview[]>('/eventreviews/event/${eventId}'),
   create: (data: CreateEventReviewPayload) => api.post<EventReview>('/eventreviews', data),
 };
 
 export const reportsAPI = {
-  create: (data: { targetType: 'Review'|'Photo'; targetId: number; reason: string; description?: string }) =>
+  create: (data: { targetType: 'Review' | 'Photo' | 'EventReview'; targetId: number; reason: string; description?: string }) =>
     api.post('/reports', data),
 };
 
