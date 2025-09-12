@@ -83,7 +83,7 @@ public class EventsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize]
+    [Authorize(Policy = "events.create")]
     public async Task<ActionResult<EventDto>> CreateEvent([FromBody] CreateEventDto model)
     {
         if (!ModelState.IsValid)

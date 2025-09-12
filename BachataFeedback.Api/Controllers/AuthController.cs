@@ -1,5 +1,4 @@
-﻿using BachataFeedback.Api.Data;
-using BachataFeedback.Api.Services;
+﻿using BachataFeedback.Api.Services;
 using BachataFeedback.Core.DTOs;
 using BachataFeedback.Core.Models;
 using Microsoft.AspNetCore.Identity;
@@ -14,14 +13,14 @@ public class AuthController : ControllerBase
     private readonly UserManager<User> _userManager;
     private readonly SignInManager<User> _signInManager;
     private readonly ITokenService _tokenService;
-    private readonly ApplicationDbContext _context;
+    private readonly RoleManager<IdentityRole> _roleManager;
 
-    public AuthController(UserManager<User> userManager, SignInManager<User> signInManager, ITokenService tokenService, ApplicationDbContext context)
+    public AuthController(UserManager<User> userManager, SignInManager<User> signInManager, ITokenService tokenService, RoleManager<IdentityRole> roleManager)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _tokenService = tokenService;
-        _context = context;
+        _roleManager = roleManager;
     }
 
     [HttpPost("register")]
@@ -41,52 +40,47 @@ public class AuthController : ControllerBase
 
         var result = await _userManager.CreateAsync(user, model.Password);
 
-        if (result.Succeeded)
+        if (!result.Succeeded)
         {
-            // Создаём дефолтные настройки
-            if (await _context.UserSettings.FindAsync(user.Id) is null)
+            foreach (var error in result.Errors)
+                ModelState.AddModelError(string.Empty, error.Description);
+            return BadRequest(ModelState);
+        }
+
+        // Назначаем базовую роль User
+        if (await _roleManager.RoleExistsAsync("User"))
+        {
+            await _userManager.AddToRoleAsync(user, "User");
+        }
+
+        var token = await _tokenService.GenerateTokenAsync(user);
+
+        var roles = await _userManager.GetRolesAsync(user);
+        // Permissions уже вшиты в токен; дополнительно собирать — не обязательно, но вернем для UI
+        var permissions = new List<string>(); // можно не трогать, если UI будет читать из токена; но для простоты возвращаем пусто
+
+        return Ok(new
+        {
+            message = "User registered successfully",
+            token,
+            user = new
             {
-                _context.UserSettings.Add(new UserSettings
-                {
-                    UserId = user.Id,
-                    AllowReviews = true,
-                    ShowRatingsToOthers = true,
-                    ShowTextReviewsToOthers = true,
-                    AllowAnonymousReviews = true,
-                    ShowPhotosToGuests = true
-                });
-                await _context.SaveChangesAsync();
+                Id = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Nickname = user.Nickname,
+                StartDancingDate = user.StartDancingDate,
+                SelfAssessedLevel = user.SelfAssessedLevel,
+                Bio = user.Bio,
+                DanceStyles = user.DanceStyles,
+                MainPhotoPath = user.MainPhotoPath,
+                CreatedAt = user.CreatedAt,
+                DancerRole = user.DancerRole,
+                Roles = roles,
+                Permissions = permissions
             }
-
-            var token = await _tokenService.GenerateTokenAsync(user);
-
-            return Ok(new
-            {
-                message = "User registered successfully",
-                token = token,
-                user = new UserProfileDto
-                {
-                    Id = user.Id,
-                    Email = user.Email,
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    Nickname = user.Nickname,
-                    StartDancingDate = user.StartDancingDate,
-                    SelfAssessedLevel = user.SelfAssessedLevel,
-                    Bio = user.Bio,
-                    DanceStyles = user.DanceStyles,
-                    MainPhotoPath = user.MainPhotoPath,
-                    CreatedAt = user.CreatedAt
-                }
-            });
-        }
-
-        foreach (var error in result.Errors)
-        {
-            ModelState.AddModelError(string.Empty, error.Description);
-        }
-
-        return BadRequest(ModelState);
+        });
     }
 
     [HttpPost("login")]
@@ -100,33 +94,34 @@ public class AuthController : ControllerBase
             return Unauthorized(new { message = "Invalid login credentials" });
 
         var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
+        if (!result.Succeeded)
+            return Unauthorized(new { message = "Invalid login credentials" });
 
-        if (result.Succeeded)
+        var token = await _tokenService.GenerateTokenAsync(user);
+        var roles = await _userManager.GetRolesAsync(user);
+
+        return Ok(new
         {
-            var token = await _tokenService.GenerateTokenAsync(user);
-
-            return Ok(new
+            message = "Login successful",
+            token,
+            user = new
             {
-                message = "Login successful",
-                token = token,
-                user = new UserProfileDto
-                {
-                    Id = user.Id,
-                    Email = user.Email!,
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    Nickname = user.Nickname,
-                    StartDancingDate = user.StartDancingDate,
-                    SelfAssessedLevel = user.SelfAssessedLevel,
-                    Bio = user.Bio,
-                    DanceStyles = user.DanceStyles,
-                    MainPhotoPath = user.MainPhotoPath,
-                    CreatedAt = user.CreatedAt
-                }
-            });
-        }
-
-        return Unauthorized(new { message = "Invalid login credentials" });
+                Id = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Nickname = user.Nickname,
+                StartDancingDate = user.StartDancingDate,
+                SelfAssessedLevel = user.SelfAssessedLevel,
+                Bio = user.Bio,
+                DanceStyles = user.DanceStyles,
+                MainPhotoPath = user.MainPhotoPath,
+                CreatedAt = user.CreatedAt,
+                DancerRole = user.DancerRole,
+                Roles = roles,
+                Permissions = Array.Empty<string>() // по желанию можно собрать из RoleManager, но токен уже содержит
+            }
+        });
     }
 
     [HttpGet("me")]
@@ -135,7 +130,9 @@ public class AuthController : ControllerBase
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return Unauthorized();
 
-        return Ok(new UserProfileDto
+        var roles = await _userManager.GetRolesAsync(user);
+
+        return Ok(new
         {
             Id = user.Id,
             Email = user.Email!,
@@ -147,7 +144,29 @@ public class AuthController : ControllerBase
             Bio = user.Bio,
             DanceStyles = user.DanceStyles,
             MainPhotoPath = user.MainPhotoPath,
-            CreatedAt = user.CreatedAt
+            CreatedAt = user.CreatedAt,
+            DancerRole = user.DancerRole,
+            Roles = roles,
+            Permissions = Array.Empty<string>()
         });
+    }
+
+    [HttpGet("permissions")]
+    public IActionResult MyPermissions()
+    {
+        // Читаем claims "permission" из текущего токена
+        var perms = User?.Claims
+            .Where(c => c.Type == "permission")
+            .Select(c => c.Value)
+            .Distinct()
+            .ToArray() ?? Array.Empty<string>();
+
+        var roles = User?.Claims
+            .Where(c => c.Type == System.Security.Claims.ClaimTypes.Role)
+            .Select(c => c.Value)
+            .Distinct()
+            .ToArray() ?? Array.Empty<string>();
+
+        return Ok(new { roles, permissions = perms });
     }
 }

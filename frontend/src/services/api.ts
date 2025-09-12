@@ -52,6 +52,8 @@ export interface User {
   createdAt: string;
   updatedAt: string;
   dancerRole?: string; // "Lead" | "Follow" | "Both"
+  roles?: string[];
+  permissions?: string[];
 }
 
 export interface Event {
@@ -179,6 +181,15 @@ export const userSettingsAPI = {
     allowAnonymousReviews: boolean;
     showPhotosToGuests: boolean;
   }) => api.put('/usersettings/me', data),
+};
+
+export const adminRolesAPI = {
+  getRoles: () => api.get<{ id: string; name: string; permissions: string[] }[]>('/admin/roles'),
+  getAllPermissions: () => api.get<string[]>('/admin/roles/permissions'),
+  syncRoles: () => api.post('/admin/roles/sync', {}),
+  assignRole: (userId: string, role: string) => api.post(`/admin/roles/users/${userId}/assign`, { role }),
+  revokeRole: (userId: string, role: string) => api.post(`/admin/roles/users/${userId}/revoke`, { role }),
+  getUserRoles: (userId: string) => api.get<{ userId: string; roles: string[]; permissions: string[] }>(`/admin/roles/users/${userId}`),
 };
 
 export default api;

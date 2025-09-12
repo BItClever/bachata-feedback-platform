@@ -3,8 +3,10 @@ import { eventsAPI, Event } from '../services/api';
 import EventModal from '../components/EventModal';
 import EventReviewModal from '../components/EventReviewModal';
 import EventReviewsPanel from '../components/EventReviewsPanel';
+import { useAuth } from '../contexts/AuthContext';
 
 const Events: React.FC = () => {
+  const { user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -12,6 +14,10 @@ const Events: React.FC = () => {
   const [showEventReviewModal, setShowEventReviewModal] = useState(false);
   const [eventToReview, setEventToReview] = useState<Event | null>(null);
   const [openReviewsForEventId, setOpenReviewsForEventId] = useState<number | null>(null);
+
+  const canCreateEvent =
+    (user?.permissions && user.permissions.includes('events.create')) ||
+    (user?.roles && (user.roles.includes('Admin') || user.roles.includes('Organizer')));
 
   const fetchEvents = async () => {
     try {
@@ -28,23 +34,24 @@ const Events: React.FC = () => {
       setIsLoading(false);
     }
   };
-    const handleJoinEvent = async (eventId: number) => { 
+
+  const handleJoinEvent = async (eventId: number) => { 
     try {
         await eventsAPI.joinEvent(eventId);
         fetchEvents();
     } catch (error) {
         console.error('Error joining event:', error);
     }
-    };
+  };
 
-    const handleLeaveEvent = async (eventId: number) => {
+  const handleLeaveEvent = async (eventId: number) => {
     try {
         await eventsAPI.leaveEvent(eventId);
         fetchEvents();
     } catch (error) {
         console.error('Error leaving event:', error);
     }
-    };
+  };
 
   useEffect(() => {
     fetchEvents();
@@ -62,12 +69,14 @@ const Events: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Events</h1>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="btn-primary"
-        >
-          Create Event
-        </button>
+        {canCreateEvent && (
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="btn-primary"
+          >
+            Create Event
+          </button>
+        )}
       </div>
 
       {error && (
@@ -176,11 +185,13 @@ const Events: React.FC = () => {
         />
       )}
 
-      <EventModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onEventCreated={fetchEvents}
-      />
+      {isModalOpen && canCreateEvent && (
+        <EventModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onEventCreated={fetchEvents}
+        />
+      )}
     </div>
   );
 };
