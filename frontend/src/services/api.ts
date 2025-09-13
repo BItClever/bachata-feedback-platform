@@ -1,13 +1,43 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// 1) Умное определение API_BASE_URL
+//    Порядок приоритета:
+//    - явный REACT_APP_API_URL из .env(.local)
+//    - если домен фронта *.alexei.site — используем api-bachata.alexei.site
+//    - локалка: http://localhost:5000/api
+function resolveApiBaseUrl(): string {
+  const envUrl = process.env.REACT_APP_API_URL?.trim();
+  if (envUrl) return envUrl;
+
+  const host = window.location.host.toLowerCase();
+
+  // Авто‑угадать для домена под CF Tunnel,
+  // чтобы прод не зависел от .env, а локалка — от дефолта:
+  if (host.endsWith('alexei.site')) {
+    return 'https://api-bachata.alexei.site/api';
+  }
+
+  // Локальная разработка
+  if (host.startsWith('localhost') || host.startsWith('127.0.0.1')) {
+    return 'http://localhost:5000/api';
+  }
+
+  // Жёстко упасть, чтобы не выстрелить себе в ногу в незнакомой среде
+  throw new Error(
+    'API base URL is not configured. Set REACT_APP_API_URL in .env(.local) or add host mapping in api.ts.'
+  );
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
+
+// Для отладки — сразу видно, куда реально пойдут запросы
+(window as any).__API_BASE_URL = API_BASE_URL;
+console.log('[api] BASE_URL =', API_BASE_URL);
 
 // Создаем экземпляр axios
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
 // Интерцептор: добавляем токен
@@ -19,9 +49,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // Интерцептор: обработка ответов/ошибок
@@ -32,10 +60,9 @@ api.interceptors.response.use(
     const url = error?.config?.url || '';
     if (status === 401) {
       const token = localStorage.getItem('token');
-      // Эндпоинты, для которых 401 означает недействительную сессию
+      // 401 считаем критичным только для защищённых эндпоинтов
       const critical = ['/auth/me', '/users/me', '/reviews', '/events', '/userphotos', '/usersettings'];
       const isCritical = critical.some(path => url.includes(path));
-
       if (token && isCritical) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -58,7 +85,7 @@ export interface User {
   startDancingDate?: string;
   danceStyles?: string;
   createdAt: string;
-  updatedAt?: string; // делаем опциональным
+  updatedAt?: string;
   dancerRole?: string; // "Lead" | "Follow" | "Both"
   roles?: string[];
   permissions?: string[];
@@ -72,7 +99,7 @@ export interface Event {
   location: string;
   createdBy: string;
   createdAt: string;
-  updatedAt?: string; // опционально
+  updatedAt?: string;
   participantCount?: number;
   creatorName?: string;
   isUserParticipating?: boolean;
@@ -199,11 +226,15 @@ export const adminRolesAPI = {
   syncRoles: () => api.post('/admin/roles/sync', {}),
   assignRole: (userId: string, role: string) => api.post(`/admin/roles/users/${userId}/assign`, { role }),
   revokeRole: (userId: string, role: string) => api.post(`/admin/roles/users/${userId}/revoke`, { role }),
-  getUserRoles: (userId: string) => api.get<{ userId: string; roles: string[]; permissions: string[] }>(`/admin/roles/users/${userId}`),
+  getUserRoles: (userId: string) =>
+    api.get<{ userId: string; roles: string[]; permissions: string[] }>(`/admin/roles/users/${userId}`),
 };
 
 export const userPhotosAPI = {
-  getMine: () => api.get<{ id: number; isMain: boolean; smallUrl: string; mediumUrl: string; largeUrl: string }[]>('/userphotos/me'),
+  getMine: () =>
+    api.get<{ id: number; isMain: boolean; smallUrl: string; mediumUrl: string; largeUrl: string }[]>(
+      '/userphotos/me'
+    ),
   uploadMyPhoto: (file: File) => {
     const fd = new FormData();
     fd.append('file', file);
@@ -218,7 +249,7 @@ export const eventsAPIEx = {
     const fd = new FormData();
     fd.append('file', file);
     return api.post(`/events/${eventId}/cover`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-  }
+  },
 };
 
 export default api;

@@ -10,6 +10,7 @@ import Users from './pages/Users';
 import Events from './pages/Events';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoles from './pages/AdminRoles';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/users"
               element={
@@ -36,6 +38,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/events"
               element={
@@ -44,13 +47,23 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route 
-              path="/profile" 
+
+            <Route
+              path="/profile"
               element={
                 <ProtectedRoute>
                   <Profile />
                 </ProtectedRoute>
-              } 
+              }
+            />
+
+            <Route
+              path="/admin/roles"
+              element={
+                <ProtectedRoute>
+                  <AdminRoles />
+                </ProtectedRoute>
+              }
             />
           </Routes>
         </Layout>

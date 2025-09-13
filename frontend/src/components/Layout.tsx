@@ -15,6 +15,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     navigate('/');
   };
 
+  const isAdmin = !!user?.roles?.includes('Admin');
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation */}
@@ -28,7 +30,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </h1>
               </Link>
             </div>
-
             <div className="flex items-center space-x-4">
               {user ? (
                 <>
@@ -50,11 +51,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   >
                     Events
                   </Link>
+
+                  {isAdmin && (
+                    <Link
+                      to="/admin/roles"
+                      className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
+                    >
+                      Admin
+                    </Link>
+                  )}
+
                   <Link
                     to="/profile"
                     className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
                   >
-                     {user.firstName} {user.lastName}
+                    {user.firstName} {user.lastName}
                   </Link>
                   <div className="flex items-center space-x-3">
                     <button
