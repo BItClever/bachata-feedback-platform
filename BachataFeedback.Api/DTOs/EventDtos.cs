@@ -30,4 +30,7 @@ public class EventDto
     public DateTime CreatedAt { get; set; }
     public int ParticipantCount { get; set; }
     public bool IsUserParticipating { get; set; }
+
+    public string? CoverImageSmallUrl { get; set; }
+    public string? CoverImageLargeUrl { get; set; }
 }

@@ -2,6 +2,9 @@ using BachataFeedback.Api.Authorization;
 using BachataFeedback.Api.Data;
 using BachataFeedback.Api.Middleware;
 using BachataFeedback.Api.Services;
+using BachataFeedback.Api.Services.Antivirus;
+using BachataFeedback.Api.Services.Images;
+using BachataFeedback.Api.Services.Storage;
 using BachataFeedback.Core.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -73,6 +76,11 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
+
+// Media pipeline
+builder.Services.AddSingleton<IStorageService, MinioStorageService>();
+builder.Services.AddSingleton<IAntivirusScanner, ClamAvScanner>();
+builder.Services.AddSingleton<IImageProcessor, ImageProcessor>();
 
 builder.Services.AddControllers();
 

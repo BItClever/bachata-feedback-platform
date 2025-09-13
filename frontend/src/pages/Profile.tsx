@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { usersAPI, userSettingsAPI, reviewsAPI, Review } from '../services/api';
+import { userPhotosAPI } from '../services/api';
 
 const Profile: React.FC = () => {
-  const { user, updateUserData } = useAuth(); 
+  const { user, updateUserData } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
@@ -20,55 +21,61 @@ const Profile: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [myReviews, setMyReviews] = useState<Review[]>([]);
   const [ratingsAgg, setRatingsAgg] = useState<{ lead: Record<string, number>, follow: Record<string, number> }>({
-  lead: {},
-  follow: {}
-});
+    lead: {},
+    follow: {}
+  });
+  // Photos
+  const [myPhotos, setMyPhotos] = useState<Array<{ id: number; isMain: boolean; smallUrl: string; mediumUrl: string; largeUrl: string }>>([]);
+  const [uploading, setUploading] = useState(false);
 
-  // Обновляем formData когда user изменяется
-useEffect(() => {
-  const load = async () => {
-    if (!user) return;
-    try {
-      const res = await reviewsAPI.getUserReviews(user.id);
-      setMyReviews(res.data);
+  // Обновляем formData и загружаем отзывы/фото когда user изменяется
+  useEffect(() => {
+    const load = async () => {
+      if (!user) return;
+      try {
+        const res = await reviewsAPI.getUserReviews(user.id);
+        setMyReviews(res.data);
+        const leadAcc: Record<string, { sum: number; count: number }> = {};
+        const followAcc: Record<string, { sum: number; count: number }> = {};
 
-      const leadAcc: Record<string, { sum: number; count: number }> = {};
-      const followAcc: Record<string, { sum: number; count: number }> = {};
-
-      for (const r of res.data) {
-        if (r.leadRatings) {
-          for (const [k, v] of Object.entries(r.leadRatings)) {
-            if (!leadAcc[k]) leadAcc[k] = { sum: 0, count: 0 };
-            leadAcc[k].sum += v;
-            leadAcc[k].count += 1;
+        for (const r of res.data) {
+          if (r.leadRatings) {
+            for (const [k, v] of Object.entries(r.leadRatings)) {
+              if (!leadAcc[k]) leadAcc[k] = { sum: 0, count: 0 };
+              leadAcc[k].sum += v;
+              leadAcc[k].count += 1;
+            }
+          }
+          if (r.followRatings) {
+            for (const [k, v] of Object.entries(r.followRatings)) {
+              if (!followAcc[k]) followAcc[k] = { sum: 0, count: 0 };
+              followAcc[k].sum += v;
+              followAcc[k].count += 1;
+            }
           }
         }
-        if (r.followRatings) {
-          for (const [k, v] of Object.entries(r.followRatings)) {
-            if (!followAcc[k]) followAcc[k] = { sum: 0, count: 0 };
-            followAcc[k].sum += v;
-            followAcc[k].count += 1;
-          }
+
+        const leadOut: Record<string, number> = {};
+        for (const [k, { sum, count }] of Object.entries(leadAcc)) {
+          leadOut[k] = count ? sum / count : 0;
         }
-      }
 
-      const leadOut: Record<string, number> = {};
-      for (const [k, { sum, count }] of Object.entries(leadAcc)) {
-        leadOut[k] = count ? sum / count : 0;
-      }
+        const followOut: Record<string, number> = {};
+        for (const [k, { sum, count }] of Object.entries(followAcc)) {
+          followOut[k] = count ? sum / count : 0;
+        }
 
-      const followOut: Record<string, number> = {};
-      for (const [k, { sum, count }] of Object.entries(followAcc)) {
-        followOut[k] = count ? sum / count : 0;
-      }
+        setRatingsAgg({ lead: leadOut, follow: followOut });
 
-      setRatingsAgg({ lead: leadOut, follow: followOut });
-    } catch (e) {
-      // тихо игнорируем в MVP
-    }
-  };
-  load();
-}, [user]);
+        // Photos
+        const ph = await userPhotosAPI.getMine();
+        setMyPhotos(ph.data);
+      } catch (e) {
+        // тихо игнорируем в MVP
+      }
+    };
+    load();
+  }, [user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({
@@ -82,10 +89,9 @@ useEffect(() => {
     setIsLoading(true);
     setError('');
     setSuccess('');
-
     try {
       if (!user) return;
-      
+
       const updateData = {
         ...formData,
         startDancingDate: formData.startDancingDate ? new Date(formData.startDancingDate).toISOString() : undefined
@@ -93,24 +99,23 @@ useEffect(() => {
 
       await usersAPI.updateUser(user.id.toString(), updateData);
 
-        // Сразу забираем актуальный профиль с сервера
-        const me = await usersAPI.getCurrentUser();
-        updateUserData(me.data);
+      // Сразу забираем актуальный профиль с сервера
+      const me = await usersAPI.getCurrentUser();
+      updateUserData(me.data);
 
-        // синхронизируем локальную форму с тем, что на сервере
-        setFormData({
-          firstName: me.data.firstName || '',
-          lastName: me.data.lastName || '',
-          nickname: me.data.nickname || '',
-          bio: me.data.bio || '',
-          selfAssessedLevel: me.data.selfAssessedLevel || '',
-          startDancingDate: me.data.startDancingDate ? me.data.startDancingDate.split('T')[0] : '',
-          danceStyles: me.data.danceStyles || '',
-          dancerRole: me.data.dancerRole || ''
-        });
+      setFormData({
+        firstName: me.data.firstName || '',
+        lastName: me.data.lastName || '',
+        nickname: me.data.nickname || '',
+        bio: me.data.bio || '',
+        selfAssessedLevel: me.data.selfAssessedLevel || '',
+        startDancingDate: me.data.startDancingDate ? me.data.startDancingDate.split('T')[0] : '',
+        danceStyles: me.data.danceStyles || '',
+        dancerRole: me.data.dancerRole || ''
+      });
 
-        setIsEditing(false);
-        setSuccess('Profile updated successfully!');
+      setIsEditing(false);
+      setSuccess('Profile updated successfully!');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to update profile');
     } finally {
@@ -118,16 +123,16 @@ useEffect(() => {
     }
   };
 
-    const levelOptions = [
-      'Beginner',
-      'Beginner-Intermediate',
-      'Intermediate',
-      'Intermediate-Advanced',
-      'Advanced',
-      'Professional'
-    ];
+  const levelOptions = [
+    'Beginner',
+    'Beginner-Intermediate',
+    'Intermediate',
+    'Intermediate-Advanced',
+    'Advanced',
+    'Professional'
+  ];
 
-    const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState({
     allowReviews: true,
     showRatingsToOthers: true,
     showTextReviewsToOthers: true,
@@ -141,7 +146,7 @@ useEffect(() => {
       try {
         const resp = await userSettingsAPI.getMine();
         setSettings(resp.data);
-      } catch {}
+      } catch { }
     };
     load();
   }, []);
@@ -151,12 +156,60 @@ useEffect(() => {
     try {
       await userSettingsAPI.updateMine(settings);
       setSuccess('Settings updated!');
-    } catch (e:any) {
+    } catch (e: any) {
       setError(e.response?.data?.message || 'Failed to update settings');
     } finally {
       setSavingSettings(false);
     }
   };
+
+  // Photos: actions
+  const refreshPhotos = async () => {
+    const ph = await userPhotosAPI.getMine();
+    setMyPhotos(ph.data);
+  };
+
+  const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    setUploading(true);
+    setError('');
+    setSuccess('');
+    try {
+      await userPhotosAPI.uploadMyPhoto(file);
+      await refreshPhotos();
+      setSuccess('Photo uploaded');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to upload photo');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const setMainPhoto = async (photoId: number) => {
+    try {
+      await userPhotosAPI.setMain(photoId);
+      await refreshPhotos();
+      // обновим профиль (MainPhotoPath)
+      const me = await usersAPI.getCurrentUser();
+      updateUserData(me.data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to set main photo');
+    }
+  };
+
+  const deletePhoto = async (photoId: number) => {
+    try {
+      await userPhotosAPI.delete(photoId);
+      await refreshPhotos();
+      setSuccess('Photo deleted');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to delete photo');
+    }
+  };
+
+  const mainPhoto = myPhotos.find(p => p.isMain);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -172,7 +225,6 @@ useEffect(() => {
             </button>
           )}
         </div>
-
         {success && (
           <div className="bg-green-50 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
             {success}
@@ -184,6 +236,34 @@ useEffect(() => {
             {error}
           </div>
         )}
+
+        {/* Header with avatar */}
+        <div className="flex items-center space-x-6 mb-6">
+          <div className="w-24 h-24 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden">
+            {mainPhoto ? (
+              <img src={mainPhoto.smallUrl} alt="avatar" className="w-24 h-24 object-cover" />
+            ) : (
+              <span className="text-primary-600 font-bold text-2xl">
+                {user?.firstName?.[0]}{user?.lastName?.[0]}
+              </span>
+            )}
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {user?.firstName} {user?.lastName}
+            </h2>
+            {user?.nickname && (
+              <p className="text-gray-600 text-lg">"{user.nickname}"</p>
+            )}
+            <p className="text-gray-600">{user?.email}</p>
+            <div className="mt-3">
+              <label className="btn-secondary relative cursor-pointer">
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={onUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+                {uploading ? 'Uploading...' : 'Upload Avatar/Photo'}
+              </label>
+            </div>
+          </div>
+        </div>
 
         {isEditing ? (
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -322,23 +402,6 @@ useEffect(() => {
           </form>
         ) : (
           <div className="space-y-6">
-            <div className="flex items-center space-x-6">
-              <div className="w-24 h-24 bg-primary-100 rounded-full flex items-center justify-center">
-                <span className="text-primary-600 font-bold text-2xl">
-                  {user?.firstName[0]}{user?.lastName[0]}
-                </span>
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {user?.firstName} {user?.lastName}
-                </h2>
-                {user?.nickname && (
-                  <p className="text-gray-600 text-lg">"{user.nickname}"</p>
-                )}
-                <p className="text-gray-600">{user?.email}</p>
-              </div>
-            </div>
-
             {user?.bio && (
               <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">About</h3>
@@ -354,10 +417,10 @@ useEffect(() => {
                 </div>
               )}
               {user?.dancerRole && (
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Role</h3>
-                <p className="text-gray-700">{user.dancerRole}</p>
-              </div>
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Role</h3>
+                  <p className="text-gray-700">{user.dancerRole}</p>
+                </div>
               )}
               {user?.startDancingDate && (
                 <div>
@@ -375,6 +438,7 @@ useEffect(() => {
                 <p className="text-gray-700">{user.danceStyles}</p>
               </div>
             )}
+
             {(Object.keys(ratingsAgg.lead).length > 0 || Object.keys(ratingsAgg.follow).length > 0) && (
               <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">My Ratings</h3>
@@ -408,9 +472,32 @@ useEffect(() => {
                 )}
               </div>
             )}
+
+            {/* Мои фото */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">My Photos</h3>
+              {myPhotos.length === 0 ? (
+                <p className="text-gray-500">No photos yet. Upload your first photo!</p>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {myPhotos.map(p => (
+                    <div key={p.id} className="border rounded-lg overflow-hidden">
+                      <img src={p.mediumUrl} alt="" className="w-full h-40 object-cover" />
+                      <div className="p-2 flex items-center justify-between text-sm">
+                        {p.isMain ? <span className="text-green-700 font-semibold">Main</span> : (
+                          <button className="text-primary-600 hover:underline" onClick={() => setMainPhoto(p.id)}>Set main</button>
+                        )}
+                        <button className="text-red-600 hover:underline" onClick={() => deletePhoto(p.id)}>Delete</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
+
       <div className="bg-white rounded-lg shadow-lg p-8 mt-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Privacy Settings</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -439,7 +526,6 @@ useEffect(() => {
         </div>
       </div>
     </div>
-    
   );
 };
 

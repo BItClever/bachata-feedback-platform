@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { eventsAPI } from '../services/api';
+import { eventsAPIEx } from '../services/api';
 
 interface EventModalProps {
   isOpen: boolean;
@@ -14,39 +15,43 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onEventCreated
     date: '',
     location: ''
   });
+  const [coverFile, setCoverFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-
     try {
-      await eventsAPI.createEvent({
+      const created = await eventsAPI.createEvent({
         name: formData.name,
         description: formData.description,
         date: new Date(formData.date).toISOString(),
         location: formData.location
       });
-      
+
+      const eventId = created.data.id;
+      if (coverFile) {
+        try {
+          await eventsAPIEx.uploadCover(eventId, coverFile);
+        } catch (err: any) {
+          // не блокируем создание события, только показываем мягкую ошибку
+          console.error('Cover upload error', err);
+        }
+      }
+
       onEventCreated();
       onClose();
-      
+
       // Reset form
-      setFormData({
-        name: '',
-        description: '',
-        date: '',
-        location: ''
-      });
+      setFormData({ name: '', description: '', date: '', location: '' });
+      setCoverFile(null);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to create event');
     } finally {
@@ -61,16 +66,12 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onEventCreated
       <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-bold text-gray-900">Create New Event</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600" >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-
         {error && (
           <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             {error}
@@ -134,6 +135,19 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onEventCreated
               onChange={handleChange}
               placeholder="e.g., Dance Studio XYZ, Main Street 123"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Cover image (optional)
+            </label>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
+              className="input-field"
+            />
+            <p className="text-xs text-gray-500 mt-1">JPEG/PNG/WEBP up to 10 MB</p>
           </div>
 
           <div className="flex space-x-4 pt-4">

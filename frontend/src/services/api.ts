@@ -15,7 +15,7 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
-      (config.headers as any).Authorization = 'Bearer ${ token }';
+      (config.headers as any).Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -28,12 +28,20 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // 401 — выходим и на /login
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-      return;
+    const status = error?.response?.status;
+    const url = error?.config?.url || '';
+    if (status === 401) {
+      const token = localStorage.getItem('token');
+      // Эндпоинты, для которых 401 означает недействительную сессию
+      const critical = ['/auth/me', '/users/me', '/reviews', '/events', '/userphotos', '/usersettings'];
+      const isCritical = critical.some(path => url.includes(path));
+
+      if (token && isCritical) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+        return;
+      }
     }
     return Promise.reject(error);
   }
@@ -50,7 +58,7 @@ export interface User {
   startDancingDate?: string;
   danceStyles?: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string; // делаем опциональным
   dancerRole?: string; // "Lead" | "Follow" | "Both"
   roles?: string[];
   permissions?: string[];
@@ -64,10 +72,12 @@ export interface Event {
   location: string;
   createdBy: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string; // опционально
   participantCount?: number;
   creatorName?: string;
   isUserParticipating?: boolean;
+  coverImageSmallUrl?: string;
+  coverImageLargeUrl?: string;
 }
 
 export interface Review {
@@ -141,29 +151,29 @@ export const authAPI = {
 
 export const usersAPI = {
   getUsers: () => api.get<User[]>('/users'),
-  getUser: (id: string) => api.get<User>('/users/${id}'),
+  getUser: (id: string) => api.get<User>(`/users/${id}`),
   getCurrentUser: () => api.get<User>('/users/me'),
-  updateUser: (id: string, data: Partial<User>) => api.put<User>('/users/${id}', data),
+  updateUser: (id: string, data: Partial<User>) => api.put<User>(`/users/${id}`, data),
 };
 
 export const reviewsAPI = {
   getReviews: () => api.get<Review[]>('/reviews'),
-  getUserReviews: (userId: string) => api.get<Review[]>('/reviews/user / ${userId}'),
+  getUserReviews: (userId: string) => api.get<Review[]>(`/reviews/user/${userId}`),
   createReview: (data: CreateUserReviewPayload) => api.post<Review>('/reviews', data),
 };
 
 export const eventsAPI = {
   getEvents: () => api.get<Event[]>('/events'),
-  getEvent: (id: number) => api.get<Event>('/events/${id}'),
+  getEvent: (id: number) => api.get<Event>(`/events/${id}`),
   createEvent: (data: { name: string; description?: string; date: string; location?: string; }) => api.post<Event>('/events', data),
-  updateEvent: (id: number, data: Partial<Event>) => api.put<Event>('/events/${id}', data),
-  deleteEvent: (id: number) => api.delete('/events/${id}'),
-  joinEvent: (id: number) => api.post('/events/${id}/join'),
-  leaveEvent: (id: number) => api.post('/events/${id}/leave'),
+  updateEvent: (id: number, data: Partial<Event>) => api.put<Event>(`/events/${id}`, data),
+  deleteEvent: (id: number) => api.delete(`/events/${id}`),
+  joinEvent: (id: number) => api.post(`/events/${id}/join`),
+  leaveEvent: (id: number) => api.post(`/events/${id}/leave`),
 };
 
 export const eventReviewsAPI = {
-  getByEvent: (eventId: number) => api.get<EventReview[]>('/eventreviews/event/${eventId}'),
+  getByEvent: (eventId: number) => api.get<EventReview[]>(`/eventreviews/event/${eventId}`),
   create: (data: CreateEventReviewPayload) => api.post<EventReview>('/eventreviews', data),
 };
 
@@ -190,6 +200,25 @@ export const adminRolesAPI = {
   assignRole: (userId: string, role: string) => api.post(`/admin/roles/users/${userId}/assign`, { role }),
   revokeRole: (userId: string, role: string) => api.post(`/admin/roles/users/${userId}/revoke`, { role }),
   getUserRoles: (userId: string) => api.get<{ userId: string; roles: string[]; permissions: string[] }>(`/admin/roles/users/${userId}`),
+};
+
+export const userPhotosAPI = {
+  getMine: () => api.get<{ id: number; isMain: boolean; smallUrl: string; mediumUrl: string; largeUrl: string }[]>('/userphotos/me'),
+  uploadMyPhoto: (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api.post('/userphotos/me/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+  setMain: (photoId: number) => api.post('/userphotos/me/set-main', { photoId }),
+  delete: (photoId: number) => api.delete(`/userphotos/me/${photoId}`),
+};
+
+export const eventsAPIEx = {
+  uploadCover: (eventId: number, file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api.post(`/events/${eventId}/cover`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+  }
 };
 
 export default api;

@@ -21,6 +21,9 @@ public class Event
     [MaxLength(500)]
     public string? Description { get; set; }
 
+    [MaxLength(500)]
+    public string? CoverImagePath { get; set; }  // NEW: путь в объектном хранилище (original)
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties
