@@ -35,21 +35,21 @@ const Events: React.FC = () => {
     }
   };
 
-  const handleJoinEvent = async (eventId: number) => { 
+  const handleJoinEvent = async (eventId: number) => {
     try {
-        await eventsAPI.joinEvent(eventId);
-        fetchEvents();
+      await eventsAPI.joinEvent(eventId);
+      fetchEvents();
     } catch (error) {
-        console.error('Error joining event:', error);
+      console.error('Error joining event:', error);
     }
   };
 
   const handleLeaveEvent = async (eventId: number) => {
     try {
-        await eventsAPI.leaveEvent(eventId);
-        fetchEvents();
+      await eventsAPI.leaveEvent(eventId);
+      fetchEvents();
     } catch (error) {
-        console.error('Error leaving event:', error);
+      console.error('Error leaving event:', error);
     }
   };
 
@@ -82,7 +82,7 @@ const Events: React.FC = () => {
       {error && (
         <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
           {error}
-          <button 
+          <button
             onClick={fetchEvents}
             className="ml-4 text-red-800 underline hover:no-underline"
           >
@@ -99,10 +99,13 @@ const Events: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {events.map((event) => (
             <div key={event.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
+              {event.coverImageSmallUrl && (
+                <img src={event.coverImageSmallUrl} alt="" className="w-full h-40 object-cover" />
+              )}
               <div className="p-6">
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">{event.name}</h3>
                 <p className="text-gray-600 mb-4 line-clamp-3">{event.description}</p>
-                
+
                 <div className="space-y-2 text-sm text-gray-500 mb-4">
                   <div className="flex items-center">
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -135,19 +138,19 @@ const Events: React.FC = () => {
               <div className="px-6 pb-6">
                 {event.isUserParticipating ? (
                   <div className="mt-3 grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => handleLeaveEvent(event.id)}
-                    className="btn-secondary w-full"
-                  >
-                    Leave Event
-                  </button>
-                  <button
-                  onClick={() => { setEventToReview(event); setShowEventReviewModal(true); }}
-                  className="btn-primary w-full"
-                >
-                  Rate Event
-                </button>
-                </div>
+                    <button
+                      onClick={() => handleLeaveEvent(event.id)}
+                      className="btn-secondary w-full"
+                    >
+                      Leave Event
+                    </button>
+                    <button
+                      onClick={() => { setEventToReview(event); setShowEventReviewModal(true); }}
+                      className="btn-primary w-full"
+                    >
+                      Rate Event
+                    </button>
+                  </div>
                 ) : (
                   <button
                     onClick={() => handleJoinEvent(event.id)}
@@ -157,22 +160,22 @@ const Events: React.FC = () => {
                   </button>
                 )}
                 <div className="mt-3">
-                <button
-                  onClick={() =>
-                    setOpenReviewsForEventId(prev => (prev === event.id ? null : event.id))
-                  }
-                  className="btn-secondary w-full"
-                >
-                  {openReviewsForEventId === event.id ? 'Hide reviews' : 'View reviews'}
-                </button>
+                  <button
+                    onClick={() =>
+                      setOpenReviewsForEventId(prev => (prev === event.id ? null : event.id))
+                    }
+                    className="btn-secondary w-full"
+                  >
+                    {openReviewsForEventId === event.id ? 'Hide reviews' : 'View reviews'}
+                  </button>
                 </div>
               </div>
               {openReviewsForEventId === event.id && (
-              <div className="mt-3 bg-white border border-gray-200 rounded-lg">
-                <EventReviewsPanel eventId={event.id} />
-              </div>
-            )}
-          </div>
+                <div className="mt-3 bg-white border border-gray-200 rounded-lg">
+                  <EventReviewsPanel eventId={event.id} />
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}
