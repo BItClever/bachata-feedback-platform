@@ -28,27 +28,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const initializeAuth = async () => {
-      const token = localStorage.getItem('token');
-      console.log('Initializing auth, token:', token ? 'exists' : 'not found');
-      
-      if (token) {
-        try {
-          const response = await usersAPI.getCurrentUser();
-          setUser(response.data);
-          console.log('User loaded from token:', response.data);
-        } catch (error) {
-          console.log('Failed to load user from token:', error);
+useEffect(() => {
+  const initializeAuth = async () => {
+    const token = localStorage.getItem('token');
+    const stored = localStorage.getItem('user');
+    // Предзаполняем пользователя из localStorage, чтобы уменьшить «мерцание»
+    if (token && stored) {
+      try { setUser(JSON.parse(stored)); } catch {}
+    }
+
+    if (token) {
+      try {
+        const response = await usersAPI.getCurrentUser();
+        setUser(response.data);
+      } catch (error: any) {
+        const status = error?.response?.status;
+        if (status === 401) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
+          setUser(null);
+        } else {
+          // не чистим токен на случайной ошибке сети
+          console.log('Failed to load user from token (non-401):', error);
         }
       }
-      setIsLoading(false);
-    };
+    }
+    setIsLoading(false);
+  };
 
-    initializeAuth();
-  }, []);
+  initializeAuth();
+}, []);
 
   const login = async (email: string, password: string) => {
     const response = await authAPI.login({ email, password });
