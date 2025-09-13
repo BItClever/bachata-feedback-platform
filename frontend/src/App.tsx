@@ -11,6 +11,7 @@ import Events from './pages/Events';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoles from './pages/AdminRoles';
+import EventDetails from './pages/EventDetails';
 
 function App() {
   return (
@@ -44,6 +45,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Events />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/events/:id"
+              element={
+                <ProtectedRoute>
+                  <EventDetails />
                 </ProtectedRoute>
               }
             />

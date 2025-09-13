@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { eventsAPI, Event } from '../services/api';
 import EventModal from '../components/EventModal';
 import EventReviewModal from '../components/EventReviewModal';
@@ -103,7 +104,9 @@ const Events: React.FC = () => {
                 <img src={event.coverImageSmallUrl} alt="" className="w-full h-40 object-cover" />
               )}
               <div className="p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">{event.name}</h3>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  <Link to={`/events/${event.id}`} className="hover:underline">{event.name}</Link>
+                </h3>
                 <p className="text-gray-600 mb-4 line-clamp-3">{event.description}</p>
 
                 <div className="space-y-2 text-sm text-gray-500 mb-4">
