@@ -18,6 +18,7 @@ public class ApplicationDbContext : IdentityDbContext<User>
     public DbSet<UserSettings> UserSettings { get; set; }
     public DbSet<Report> Reports { get; set; }
     public DbSet<EventReview> EventReviews { get; set; }
+    public DbSet<ModerationJob> ModerationJobs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -91,6 +92,11 @@ public class ApplicationDbContext : IdentityDbContext<User>
             .WithMany()
             .HasForeignKey(r => r.ReporterId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // ModerationJob index
+        builder.Entity<ModerationJob>()
+            .HasIndex(m => new { m.TargetType, m.TargetId })
+            .IsUnique(false);
 
         // Unique constraints
         builder.Entity<EventParticipant>()
