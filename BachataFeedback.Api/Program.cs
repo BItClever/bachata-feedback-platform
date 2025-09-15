@@ -4,6 +4,7 @@ using BachataFeedback.Api.Middleware;
 using BachataFeedback.Api.Services;
 using BachataFeedback.Api.Services.Antivirus;
 using BachataFeedback.Api.Services.Images;
+using BachataFeedback.Api.Services.Moderation;
 using BachataFeedback.Api.Services.Storage;
 using BachataFeedback.Core.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -104,6 +105,8 @@ builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddSingleton<IStorageService, MinioStorageService>();
 builder.Services.AddSingleton<IAntivirusScanner, ClamAvScanner>();
 builder.Services.AddSingleton<IImageProcessor, ImageProcessor>();
+
+builder.Services.AddSingleton<IModerationQueue, RabbitMqModerationQueue>();
 
 builder.Services.AddControllers();
 

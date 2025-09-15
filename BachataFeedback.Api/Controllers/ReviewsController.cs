@@ -1,4 +1,6 @@
-﻿using BachataFeedback.Api.Services;
+﻿using BachataFeedback.Api.Data;
+using BachataFeedback.Api.Services;
+using BachataFeedback.Api.Services.Moderation;
 using BachataFeedback.Core.DTOs;
 using BachataFeedback.Core.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -15,11 +17,15 @@ public class ReviewsController : ControllerBase
 {
     private readonly IReviewService _reviewService;
     private readonly UserManager<User> _userManager;
+    private readonly IModerationQueue _moderationQueue;
+    private readonly ApplicationDbContext _db;
 
-    public ReviewsController(IReviewService reviewService, UserManager<User> userManager)
+    public ReviewsController(IReviewService reviewService, UserManager<User> userManager, IModerationQueue moderationQueue, ApplicationDbContext db)
     {
         _reviewService = reviewService;
         _userManager = userManager;
+        _moderationQueue = moderationQueue;
+        _db = db;
     }
 
     [HttpGet]
@@ -43,21 +49,28 @@ public class ReviewsController : ControllerBase
         var reviews = await _reviewService.GetUserReviewsAsync(userId, requestorId);
 
         bool isOwner = currentUserId == userId;
-        if (!isOwner && revieweeSettings != null)
+        var isModerator = User.IsInRole("Admin") || User.IsInRole("Moderator");
+        if (!isOwner && !isModerator)
         {
-            if (!revieweeSettings.ShowRatingsToOthers)
+            reviews = reviews
+               .Where(r => r.ModerationLevel == "Green" || r.ModerationLevel == "Yellow")
+               .ToList();
+            if (revieweeSettings != null)
             {
-                foreach (var r in reviews)
+                if (!revieweeSettings.ShowRatingsToOthers)
                 {
-                    r.LeadRatings = null;
-                    r.FollowRatings = null;
+                    foreach (var r in reviews)
+                    {
+                        r.LeadRatings = null;
+                        r.FollowRatings = null;
+                    }
                 }
-            }
-            if (!revieweeSettings.ShowTextReviewsToOthers)
-            {
-                foreach (var r in reviews)
+                if (!revieweeSettings.ShowTextReviewsToOthers)
                 {
-                    r.TextReview = null;
+                    foreach (var r in reviews)
+                    {
+                        r.TextReview = null;
+                    }
                 }
             }
         }
@@ -75,6 +88,21 @@ public class ReviewsController : ControllerBase
             return Unauthorized();
 
         var review = await _reviewService.CreateReviewAsync(currentUser.Id, model);
+        // Создаем ModerationJob и публикуем в очередь
+        _db.ModerationJobs.Add(new ModerationJob
+        {
+            TargetType = "Review",
+            TargetId = review.Id, // где review — это reviewDto.Id
+            Status = "Pending"
+        });
+        await _db.SaveChangesAsync();
+
+        await _moderationQueue.EnqueueAsync(new ModerationMessage
+        {
+            TargetType = "Review",
+            TargetId = review.Id
+        });
+
         return CreatedAtAction(nameof(GetReviews), review);
     }
 }
