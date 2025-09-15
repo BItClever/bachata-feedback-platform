@@ -124,6 +124,10 @@ export interface Review {
   tags?: string[];
   isAnonymous: boolean;
   createdAt: string;
+  moderationLevel?: 'Pending'|'Green'|'Yellow'|'Red';
+  moderationSource?: 'LLM'|'Manual'|'None';
+  moderatedAt?: string;
+  moderationReason?: string;
 }
 
 export interface CreateUserReviewPayload {
@@ -147,6 +151,10 @@ export interface EventReview {
   tags?: string[];
   isAnonymous: boolean;
   createdAt: string;
+    moderationLevel?: 'Pending'|'Green'|'Yellow'|'Red';
+  moderationSource?: 'LLM'|'Manual'|'None';
+  moderatedAt?: string;
+  moderationReason?: string;
 }
 
 export interface CreateEventReviewPayload {
@@ -253,6 +261,16 @@ export const eventsAPIEx = {
     fd.append('file', file);
     return api.post(`/events/${eventId}/cover`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
   },
+};
+
+export const moderationAdminAPI = {
+  getJobs: () => api.get('/admin/moderation/jobs'),
+  requeue: (targetType: 'Review'|'EventReview', targetId: number) =>
+    api.post('/admin/moderation/requeue', { targetType, targetId }),
+  setReviewLevel: (id: number, level: 'Green'|'Yellow'|'Red', reason?: string) =>
+    api.put(`/admin/moderation/reviews/${id}`, { level, reason }),
+  setEventReviewLevel: (id: number, level: 'Green'|'Yellow'|'Red', reason?: string) =>
+    api.put(`/admin/moderation/eventreviews/${id}`, { level, reason }),
 };
 
 export default api;

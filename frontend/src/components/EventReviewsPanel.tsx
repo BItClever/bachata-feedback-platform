@@ -97,6 +97,14 @@ const EventReviewsPanel: React.FC<EventReviewsPanelProps> = ({ eventId }) => {
                     <div className="text-xs text-gray-500">
                       {new Date(r.createdAt).toLocaleDateString()}
                     </div>
+                    {r.moderationLevel && (
+                      <span className={`ml-2 text-xs px-2 py-0.5 rounded 
+                          ${r.moderationLevel === 'Yellow' ? 'bg-yellow-100 text-yellow-800' :
+                          r.moderationLevel === 'Red' ? 'bg-red-100 text-red-800' :
+                            r.moderationLevel === 'Green' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                        {r.moderationLevel}{r.moderationSource ? ' • AI' : ''}
+                      </span>
+                    )}
                   </div>
                   {r.textReview && (
                     <p className="text-gray-700 text-sm mt-1">{r.textReview}</p>

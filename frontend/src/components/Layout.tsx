@@ -61,6 +61,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     </Link>
                   )}
 
+                  {(user?.roles?.includes('Admin') || user?.roles?.includes('Moderator')) && (
+                    <Link to="/admin/moderation" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
+                      Moderation
+                    </Link>
+                  )}
+
                   <Link
                     to="/profile"
                     className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"

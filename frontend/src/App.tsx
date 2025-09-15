@@ -12,6 +12,7 @@ import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoles from './pages/AdminRoles';
 import EventDetails from './pages/EventDetails';
+import AdminModeration from './pages/AdminModeration';
 
 function App() {
   return (
@@ -72,6 +73,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AdminRoles />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/admin/moderation"
+              element={
+                <ProtectedRoute>
+                  <AdminModeration />
                 </ProtectedRoute>
               }
             />
