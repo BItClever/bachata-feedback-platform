@@ -1,5 +1,6 @@
 ﻿using BachataFeedback.Api.Data;
 using BachataFeedback.Api.DTOs;
+using BachataFeedback.Api.Services.Moderation;
 using BachataFeedback.Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -16,11 +17,13 @@ public class EventReviewsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly UserManager<User> _userManager;
+    private readonly IModerationQueue _moderationQueue;
 
-    public EventReviewsController(ApplicationDbContext context, UserManager<User> userManager)
+    public EventReviewsController(ApplicationDbContext context, UserManager<User> userManager, IModerationQueue moderationQueue)
     {
         _context = context;
         _userManager = userManager;
+        _moderationQueue = moderationQueue;
     }
 
     [HttpGet("event/{eventId}")]
@@ -41,12 +44,20 @@ public class EventReviewsController : ControllerBase
             EventName = er.Event.Name,
             ReviewerId = er.ReviewerId,
             ReviewerName = er.IsAnonymous ? "Anonymous" : $"{er.Reviewer.FirstName} {er.Reviewer.LastName}",
-            Ratings = !string.IsNullOrEmpty(er.Ratings) ? JsonSerializer.Deserialize<Dictionary<string, int>>(er.Ratings) : null,
+            Ratings = SafeDict(er.Ratings),
             TextReview = er.TextReview,
-            Tags = !string.IsNullOrEmpty(er.Tags) ? JsonSerializer.Deserialize<List<string>>(er.Tags) : null,
+            Tags = SafeList(er.Tags),
             IsAnonymous = er.IsAnonymous,
             CreatedAt = er.CreatedAt
         }).ToList();
+
+        var isModerator = User.IsInRole("Admin") || User.IsInRole("Moderator");
+        if (!isModerator)
+        {
+            result = result
+                .Where(r => r.ModerationLevel == "Green" || r.ModerationLevel == "Yellow")
+                .ToList();
+        }
 
         return Ok(result);
     }
@@ -85,14 +96,28 @@ public class EventReviewsController : ControllerBase
         {
             ReviewerId = currentUser.Id,
             EventId = model.EventId,
-            Ratings = ratings != null ? JsonSerializer.Serialize(ratings) : null,
-            TextReview = model.TextReview,
-            Tags = model.Tags != null ? JsonSerializer.Serialize(model.Tags) : null,
+            Ratings = (ratings != null && ratings.Count > 0) ? JsonSerializer.Serialize(ratings) : null,
+            TextReview = string.IsNullOrWhiteSpace(model.TextReview) ? null : model.TextReview,
+            Tags = (model.Tags != null && model.Tags.Count > 0) ? JsonSerializer.Serialize(model.Tags) : null,
             IsAnonymous = model.IsAnonymous
         };
 
         _context.EventReviews.Add(review);
         await _context.SaveChangesAsync();
+
+        _context.ModerationJobs.Add(new ModerationJob
+        {
+            TargetType = "EventReview",
+            TargetId = review.Id,
+            Status = "Pending"
+        });
+        await _context.SaveChangesAsync();
+
+        await _moderationQueue.EnqueueAsync(new ModerationMessage
+        {
+            TargetType = "EventReview",
+            TargetId = review.Id
+        });
 
         await _context.Entry(review).Reference(r => r.Event).LoadAsync();
         await _context.Entry(review).Reference(r => r.Reviewer).LoadAsync();
@@ -108,9 +133,23 @@ public class EventReviewsController : ControllerBase
             TextReview = review.TextReview,
             Tags = model.Tags,
             IsAnonymous = review.IsAnonymous,
-            CreatedAt = review.CreatedAt
+            CreatedAt = review.CreatedAt,
+            ModerationLevel = review.ModerationLevel.ToString(),
+            ModerationSource = review.ModerationSource.ToString(),
+            ModeratedAt = review.ModeratedAt,
+            ModerationReason = review.ModerationReason,
         };
 
         return CreatedAtAction(nameof(GetByEvent), new { eventId = review.EventId }, dto);
+    }
+    private static Dictionary<string, int>? SafeDict(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try { return JsonSerializer.Deserialize<Dictionary<string, int>>(json); } catch { return null; }
+    }
+    private static List<string>? SafeList(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try { return JsonSerializer.Deserialize<List<string>>(json); } catch { return null; }
     }
 }

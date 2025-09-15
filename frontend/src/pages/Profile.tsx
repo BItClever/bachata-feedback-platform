@@ -30,11 +30,14 @@ const Profile: React.FC = () => {
 
   // Обновляем formData и загружаем отзывы/фото когда user изменяется
   useEffect(() => {
-    const load = async () => {
-      if (!user) return;
+    if (!user) return;
+
+    const loadReviews = async () => {
       try {
         const res = await reviewsAPI.getUserReviews(user.id);
         setMyReviews(res.data);
+
+        // агрегирование рейтингов — как было
         const leadAcc: Record<string, { sum: number; count: number }> = {};
         const followAcc: Record<string, { sum: number; count: number }> = {};
 
@@ -66,15 +69,22 @@ const Profile: React.FC = () => {
         }
 
         setRatingsAgg({ lead: leadOut, follow: followOut });
-
-        // Photos
-        const ph = await userPhotosAPI.getMine();
-        setMyPhotos(ph.data);
-      } catch (e) {
-        // тихо игнорируем в MVP
+      } catch {
+        // отзывы упали — просто не показываем статистику, но не мешаем фото
       }
     };
-    load();
+
+    const loadPhotos = async () => {
+      try {
+        const ph = await userPhotosAPI.getMine();
+        setMyPhotos(ph.data);
+      } catch {
+        // если вдруг упали и фото — тоже тихо игнорируем в MVP
+      }
+    };
+
+    // параллельный старт; даже если отзывы упадут, фото загрузятся
+    Promise.allSettled([loadReviews(), loadPhotos()]);
   }, [user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {

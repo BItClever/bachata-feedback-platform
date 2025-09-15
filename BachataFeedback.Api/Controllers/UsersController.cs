@@ -24,7 +24,41 @@ public class UsersController : ControllerBase
     public async Task<ActionResult<IEnumerable<UserProfileDto>>> GetUsers()
     {
         var users = await _userService.GetActiveUsersAsync();
-        return Ok(users);
+
+        string BaseUrl(HttpRequest req) => $"{req.Scheme}://{req.Host}";
+        var baseUrl = BaseUrl(Request);
+
+        string? Build(string userId, string? mainPhotoPath, string size)
+        {
+            // Ожидаем формат "users/{userId}/{photoId}/original.jpg"
+            if (string.IsNullOrEmpty(mainPhotoPath)) return null;
+            var parts = mainPhotoPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 3) return null;
+            var photoIdStr = parts[2];
+            if (!int.TryParse(photoIdStr, out var photoId)) return null;
+            return $"{baseUrl}/api/files/users/{userId}/photos/{photoId}/{size}";
+        }
+
+        var result = users.Select(u => new
+        {
+            u.Id,
+            u.Email,
+            u.FirstName,
+            u.LastName,
+            u.Nickname,
+            u.StartDancingDate,
+            u.SelfAssessedLevel,
+            u.Bio,
+            u.DanceStyles,
+            u.CreatedAt,
+            u.DancerRole,
+
+            mainPhotoSmallUrl = Build(u.Id, u.MainPhotoPath, "small"),
+            mainPhotoMediumUrl = Build(u.Id, u.MainPhotoPath, "medium"),
+            mainPhotoLargeUrl = Build(u.Id, u.MainPhotoPath, "large")
+        });
+
+        return Ok(result);
     }
 
     [HttpGet("{id}")]

@@ -13,10 +13,19 @@ const UserCard: React.FC<UserCardProps> = ({ user }) => {
     <>
       <div className="bg-white rounded-lg shadow-lg p-6">
         <div className="text-center mb-4">
-          <div className="w-16 h-16 bg-primary-100 rounded-full mx-auto mb-3 flex items-center justify-center">
-            <span className="text-primary-600 font-semibold text-lg">
-              {user.firstName[0]}{user.lastName[0]}
-            </span>
+          <div className="w-16 h-16 bg-primary-100 rounded-full mx-auto mb-3 flex items-center justify-center overflow-hidden">
+            {user.mainPhotoSmallUrl ? (
+              <img
+                src={user.mainPhotoSmallUrl}
+                alt={`${user.firstName} ${user.lastName}`}
+                className="w-16 h-16 object-cover rounded-full"
+                loading="lazy"
+              />
+            ) : (
+              <span className="text-primary-600 font-semibold text-lg">
+                {user.firstName[0]}{user.lastName[0]}
+              </span>
+            )}
           </div>
           <h3 className="font-semibold text-lg text-gray-900">
             {user.firstName} {user.lastName}
@@ -59,14 +68,14 @@ const UserCard: React.FC<UserCardProps> = ({ user }) => {
 
       {showReviewModal && (
         <ReviewModal
-            isOpen={showReviewModal}
-            onClose={() => setShowReviewModal(false)}
-            onReviewSubmitted={() => {
-      setShowReviewModal(false);      
-    }}
-    preselectedUserId={user.id}
-  />
-)}
+          isOpen={showReviewModal}
+          onClose={() => setShowReviewModal(false)}
+          onReviewSubmitted={() => {
+            setShowReviewModal(false);
+          }}
+          preselectedUserId={user.id}
+        />
+      )}
     </>
   );
 };

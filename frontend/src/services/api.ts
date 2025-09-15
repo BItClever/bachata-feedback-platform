@@ -89,6 +89,9 @@ export interface User {
   dancerRole?: string; // "Lead" | "Follow" | "Both"
   roles?: string[];
   permissions?: string[];
+  mainPhotoSmallUrl?: string;
+  mainPhotoMediumUrl?: string;
+  mainPhotoLargeUrl?: string;
 }
 
 export interface Event {

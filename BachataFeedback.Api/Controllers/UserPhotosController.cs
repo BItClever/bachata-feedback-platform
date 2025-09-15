@@ -117,15 +117,18 @@ public class UserPhotosController : ControllerBase
         photo.FilePath = $"{prefix}/original.jpg";
         await _db.SaveChangesAsync(ct);
 
+        string BaseUrl(HttpRequest req) => $"{req.Scheme}://{req.Host}";
+        var baseUrl = BaseUrl(Request);
+
         return Ok(new
         {
             success = true,
             photoId = photo.Id,
             urls = new
             {
-                small = $"/api/files/users/{current.Id}/photos/{photo.Id}/small",
-                medium = $"/api/files/users/{current.Id}/photos/{photo.Id}/medium",
-                large = $"/api/files/users/{current.Id}/photos/{photo.Id}/large"
+                small = $"{baseUrl}/api/files/users/{current.Id}/photos/{photo.Id}/small",
+                medium = $"{baseUrl}/api/files/users/{current.Id}/photos/{photo.Id}/medium",
+                large = $"{baseUrl}/api/files/users/{current.Id}/photos/{photo.Id}/large"
             }
         });
     }
@@ -195,15 +198,17 @@ public class UserPhotosController : ControllerBase
             .OrderByDescending(p => p.UploadedAt)
             .ToListAsync(ct);
 
+        string BaseUrl(HttpRequest req) => $"{req.Scheme}://{req.Host}";
+        var baseUrl = BaseUrl(Request);
+
         var items = photos.Select(p => new
         {
             id = p.Id,
             isMain = p.IsMain,
-            smallUrl = $"/api/files/users/{current.Id}/photos/{p.Id}/small",
-            mediumUrl = $"/api/files/users/{current.Id}/photos/{p.Id}/medium",
-            largeUrl = $"/api/files/users/{current.Id}/photos/{p.Id}/large"
+            smallUrl = $"{baseUrl}/api/files/users/{current.Id}/photos/{p.Id}/small",
+            mediumUrl = $"{baseUrl}/api/files/users/{current.Id}/photos/{p.Id}/medium",
+            largeUrl = $"{baseUrl}/api/files/users/{current.Id}/photos/{p.Id}/large"
         });
-
         return Ok(items);
     }
 }

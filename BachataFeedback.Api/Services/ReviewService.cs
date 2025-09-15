@@ -145,10 +145,10 @@ public class ReviewService : IReviewService
             ReviewerId = reviewerId,
             RevieweeId = model.RevieweeId,
             EventId = model.EventId,
-            LeadRatings = lead != null ? JsonSerializer.Serialize(lead) : null,
-            FollowRatings = follow != null ? JsonSerializer.Serialize(follow) : null,
-            TextReview = model.TextReview,
-            Tags = model.Tags != null ? JsonSerializer.Serialize(model.Tags) : null,
+            LeadRatings = lead != null && lead.Count > 0 ? JsonSerializer.Serialize(lead) : null,
+            FollowRatings = follow != null && follow.Count > 0 ? JsonSerializer.Serialize(follow) : null,
+            TextReview = string.IsNullOrWhiteSpace(model.TextReview) ? null : model.TextReview,
+            Tags = (model.Tags != null && model.Tags.Count > 0) ? JsonSerializer.Serialize(model.Tags) : null,
             IsAnonymous = model.IsAnonymous
         };
 
@@ -189,13 +189,10 @@ public class ReviewService : IReviewService
             RevieweeName = $"{review.Reviewee.FirstName} {review.Reviewee.LastName}",
             EventId = review.EventId,
             EventName = review.Event?.Name,
-            LeadRatings = !string.IsNullOrEmpty(review.LeadRatings) ?
-                         JsonSerializer.Deserialize<Dictionary<string, int>>(review.LeadRatings) : null,
-            FollowRatings = !string.IsNullOrEmpty(review.FollowRatings) ?
-                           JsonSerializer.Deserialize<Dictionary<string, int>>(review.FollowRatings) : null,
+            LeadRatings = TryDeserialize<Dictionary<string, int>>(review.LeadRatings),
+            FollowRatings = TryDeserialize<Dictionary<string, int>>(review.FollowRatings),
+            Tags = TryDeserialize<List<string>>(review.Tags),
             TextReview = review.TextReview,
-            Tags = !string.IsNullOrEmpty(review.Tags) ?
-                   JsonSerializer.Deserialize<List<string>>(review.Tags) : null,
             IsAnonymous = review.IsAnonymous,
             CreatedAt = review.CreatedAt,
             ModerationLevel = review.ModerationLevel.ToString(),
@@ -203,5 +200,18 @@ public class ReviewService : IReviewService
             ModeratedAt = review.ModeratedAt,
             ModerationReason = review.ModerationReason,
         };
+    }
+
+    private static T? TryDeserialize<T>(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return default;
+        try
+        {
+            return JsonSerializer.Deserialize<T>(json);
+        }
+        catch
+        {
+            return default;
+        }
     }
 }
