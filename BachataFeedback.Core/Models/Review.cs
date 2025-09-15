@@ -24,15 +24,21 @@ public class Review
     public string? TextReview { get; set; }
 
     [MaxLength(500)]
-    public string? Tags { get; set; } // JSON array: ["музыкальный", "техничный"]
+    public string? Tags { get; set; } // JSON array
 
     public bool IsAnonymous { get; set; } = false;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
     public DateTime? UpdatedAt { get; set; }
 
-    // Navigation properties
+    // Moderation
+    public ModerationLevel ModerationLevel { get; set; } = ModerationLevel.Pending;
+    public ModerationSource ModerationSource { get; set; } = ModerationSource.None;
+    public DateTime? ModeratedAt { get; set; }
+    [MaxLength(300)]
+    public string? ModerationReason { get; set; } // краткое объяснение/тэги LLM
+
+    // Navigation
     public User Reviewer { get; set; } = null!;
     public User Reviewee { get; set; } = null!;
     public Event? Event { get; set; }

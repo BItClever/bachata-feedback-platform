@@ -18,12 +18,35 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
-        mySqlOptions => mySqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 5,
-            maxRetryDelay: TimeSpan.FromSeconds(30),
-            errorNumbersToAdd: null)));
+
+// В design-time используем заглушку, чтобы не падать на недоступной БД
+if (IsDesignTime())
+{
+    // Регистрируем DbContext с пустой строкой - он не будет использоваться
+    // EF Tools возьмут контекст из IDesignTimeDbContextFactory
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseMySql("Server=localhost;Database=dummy;",
+            new MySqlServerVersion(new Version(8, 0, 36))));
+}
+else
+{
+    // Обычная регистрация для runtime
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
+            mySqlOptions => mySqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null)));
+}
+
+// Функция определения design-time режима
+static bool IsDesignTime()
+{
+    return Environment.GetCommandLineArgs().Any(arg =>
+        arg.Contains("migrations") ||
+        arg.Contains("database") ||
+        arg.Contains("ef"));
+}
 
 // Identity
 builder.Services.AddIdentity<User, IdentityRole>(options =>
