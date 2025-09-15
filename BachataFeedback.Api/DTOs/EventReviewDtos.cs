@@ -29,5 +29,10 @@ namespace BachataFeedback.Api.DTOs
         public List<string>? Tags { get; set; }
         public bool IsAnonymous { get; set; }
         public DateTime CreatedAt { get; set; }
+
+        public string? ModerationLevel { get; set; }
+        public string? ModerationSource { get; set; }
+        public DateTime? ModeratedAt { get; set; }
+        public string? ModerationReason { get; set; }
     }
 }

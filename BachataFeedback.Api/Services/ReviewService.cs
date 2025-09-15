@@ -197,7 +197,11 @@ public class ReviewService : IReviewService
             Tags = !string.IsNullOrEmpty(review.Tags) ?
                    JsonSerializer.Deserialize<List<string>>(review.Tags) : null,
             IsAnonymous = review.IsAnonymous,
-            CreatedAt = review.CreatedAt
+            CreatedAt = review.CreatedAt,
+            ModerationLevel = review.ModerationLevel.ToString(),
+            ModerationSource = review.ModerationSource.ToString(),
+            ModeratedAt = review.ModeratedAt,
+            ModerationReason = review.ModerationReason,
         };
     }
 }

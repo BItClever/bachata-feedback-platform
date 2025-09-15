@@ -35,4 +35,9 @@ public class ReviewDto
     public List<string>? Tags { get; set; }
     public bool IsAnonymous { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    public string? ModerationLevel { get; set; }  // "Pending"|"Green"|"Yellow"|"Red"
+    public string? ModerationSource { get; set; } // "LLM"|"Manual"|"None"
+    public DateTime? ModeratedAt { get; set; }
+    public string? ModerationReason { get; set; }
 }
