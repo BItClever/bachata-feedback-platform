@@ -32,7 +32,7 @@ const Dashboard: React.FC = () => {
     if (!ratings) return 0;
     const values = Object.values(ratings);
     if (!values.length) return 0;
-    return values.reduce((a,b) => a+b, 0) / values.length;
+    return values.reduce((a, b) => a + b, 0) / values.length;
   };
 
   const combinedAverage = (r: Review) => {
@@ -42,7 +42,7 @@ const Dashboard: React.FC = () => {
     if (l) parts.push(l);
     if (f) parts.push(f);
     if (!parts.length) return 0;
-    return parts.reduce((a,b)=>a+b,0) / parts.length;
+    return parts.reduce((a, b) => a + b, 0) / parts.length;
   };
 
   if (isLoading) {
@@ -54,10 +54,10 @@ const Dashboard: React.FC = () => {
   }
 
   const avgAcrossAll = reviews.length
-    ? (reviews.map(combinedAverage).reduce((a,b)=>a+b,0) / reviews.length)
+    ? (reviews.map(combinedAverage).reduce((a, b) => a + b, 0) / reviews.length)
     : 0;
 
-  const recentCount = reviews.filter(r => new Date(r.createdAt) > new Date(Date.now() - 30*24*60*60*1000)).length;
+  const recentCount = reviews.filter(r => new Date(r.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -109,6 +109,19 @@ const Dashboard: React.FC = () => {
                     <div className="flex items-center space-x-2">
                       <span className="text-sm font-medium text-gray-900">
                         {r.reviewerName || 'Anonymous'}
+                        {r.moderationLevel && (
+                          <span
+                            title={r.moderationReason ? `Moderation: ${r.moderationLevel} • ${r.moderationSource || 'AI'} • ${r.moderationReason}` : `Moderation: ${r.moderationLevel}`}
+                            className={`ml-2 text-xs px-2 py-0.5 rounded
+                            ${r.moderationLevel === 'Red' ? 'bg-red-100 text-red-800' :
+                                r.moderationLevel === 'Yellow' ? 'bg-yellow-100 text-yellow-800' :
+                                  r.moderationLevel === 'Green' ? 'bg-green-100 text-green-800' :
+                                    'bg-gray-200 text-gray-700'
+                              }`}
+                          >
+                            {r.moderationLevel || 'Pending'}
+                          </span>
+                        )}
                       </span>
                       {r.eventName && (
                         <>

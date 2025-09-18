@@ -54,9 +54,15 @@ public class EventReviewsController : ControllerBase
         var isModerator = User.IsInRole("Admin") || User.IsInRole("Moderator");
         if (!isModerator)
         {
-            result = result
-                .Where(r => r.ModerationLevel == "Green" || r.ModerationLevel == "Yellow")
-                .ToList();
+            foreach (var r in result)
+            {
+                var level = r.ModerationLevel ?? "Pending";
+                if (level == "Red" || level == "Pending")
+                {
+                    r.Ratings = null;
+                    r.TextReview = null;
+                }
+            }
         }
 
         return Ok(result);

@@ -42,38 +42,52 @@ public class ReviewsController : ControllerBase
     {
         var requestorId = _userManager.GetUserId(User);
         var currentUserId = _userManager.GetUserId(User);
+
         var revieweeSettings = await _userManager.Users
             .Where(u => u.Id == userId)
             .Select(u => u.Settings)
             .FirstOrDefaultAsync();
+
         var reviews = await _reviewService.GetUserReviewsAsync(userId, requestorId);
 
         bool isOwner = currentUserId == userId;
-        var isModerator = User.IsInRole("Admin") || User.IsInRole("Moderator");
-        if (!isOwner && !isModerator)
+        bool isModerator = User.IsInRole("Admin") || User.IsInRole("Moderator");
+
+        // Приватность по настройкам (как было)
+        if (!isOwner && revieweeSettings != null)
         {
-            reviews = reviews
-               .Where(r => r.ModerationLevel == "Green" || r.ModerationLevel == "Yellow")
-               .ToList();
-            if (revieweeSettings != null)
+            if (!revieweeSettings.ShowRatingsToOthers)
             {
-                if (!revieweeSettings.ShowRatingsToOthers)
+                foreach (var r in reviews)
                 {
-                    foreach (var r in reviews)
-                    {
-                        r.LeadRatings = null;
-                        r.FollowRatings = null;
-                    }
+                    r.LeadRatings = null;
+                    r.FollowRatings = null;
                 }
-                if (!revieweeSettings.ShowTextReviewsToOthers)
+            }
+            if (!revieweeSettings.ShowTextReviewsToOthers)
+            {
+                foreach (var r in reviews)
                 {
-                    foreach (var r in reviews)
-                    {
-                        r.TextReview = null;
-                    }
+                    r.TextReview = null;
                 }
             }
         }
+
+        // контент «Red» и «Pending» скрываем для посторонних, но статусы показываем всем
+        if (!isOwner && !isModerator)
+        {
+            foreach (var r in reviews)
+            {
+                var level = (r.ModerationLevel ?? "Pending");
+                if (level == "Red" || level == "Pending")
+                {
+                    r.LeadRatings = null;
+                    r.FollowRatings = null;
+                    r.TextReview = null;
+                }
+            }
+        }
+
         return Ok(reviews);
     }
 

@@ -112,19 +112,19 @@ public class ReviewService : IReviewService
         }
 
         // Ограничение частоты: один отзыв раз в 14 дней без события
-        if (model.EventId == null)
-        {
-            var twoWeeksAgo = DateTime.UtcNow.AddDays(-14);
-            var recent = await _context.Reviews
-                .Where(r => r.ReviewerId == reviewerId
-                         && r.RevieweeId == model.RevieweeId
-                         && r.EventId == null
-                         && r.CreatedAt >= twoWeeksAgo)
-                .AnyAsync();
+        //if (model.EventId == null)
+        //{
+        //    var twoWeeksAgo = DateTime.UtcNow.AddDays(-14);
+        //    var recent = await _context.Reviews
+        //        .Where(r => r.ReviewerId == reviewerId
+        //                 && r.RevieweeId == model.RevieweeId
+        //                 && r.EventId == null
+        //                 && r.CreatedAt >= twoWeeksAgo)
+        //        .AnyAsync();
 
-            if (recent)
-                throw new ApplicationException("You can leave a non-event review for this user once every 14 days");
-        }
+        //    if (recent)
+        //        throw new ApplicationException("You can leave a non-event review for this user once every 14 days");
+        //}
 
         // Санитизация и валидация рейтингов (1..5), игнорируем нули/мусор
         static Dictionary<string, int>? SanitizeRatings(Dictionary<string, int>? src)
