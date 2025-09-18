@@ -42,14 +42,9 @@ public class UsersController : ControllerBase
 
         var ids = users.Select(u => u.Id).ToHashSet();
         var reviews = await _db.Reviews
-            .Where(r => ids.Contains(r.RevieweeId))
-            .Select(r => new
-            {
-                r.RevieweeId,
-                r.ReviewerId,
-                r.LeadRatings,
-                r.FollowRatings
-            }).ToListAsync();
+            .Where(r => ids.Contains(r.RevieweeId) && r.ModerationLevel != ModerationLevel.Red)
+            .Select(r => new { r.RevieweeId, r.ReviewerId, r.LeadRatings, r.FollowRatings })
+            .ToListAsync();
 
         // хелпер: среднее по словарю
         static double AvgDict(string? json)
