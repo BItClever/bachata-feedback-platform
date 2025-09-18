@@ -33,6 +33,14 @@ const UserCard: React.FC<UserCardProps> = ({ user }) => {
           {user.nickname && (
             <p className="text-gray-600">"{user.nickname}"</p>
           )}
+          {(typeof user.reviewsReceivedCount !== 'undefined') && (
+            <p className="text-gray-600 text-sm">
+              {user.reviewsReceivedCount} reviews
+              {typeof user.avgRating === 'number' && (
+                <> • avg {user.avgRating?.toFixed(1)}/5</>
+              )}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2 text-sm text-gray-600">

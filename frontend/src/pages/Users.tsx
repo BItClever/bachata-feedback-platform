@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { usersAPI, User } from '../services/api';
 import UserCard from '../components/UserCard';
+import { Link } from 'react-router-dom';
 
 const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -40,7 +41,7 @@ const Users: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">Community Members</h1>
-        
+
         {/* Search */}
         <div className="max-w-md">
           <input
@@ -63,7 +64,9 @@ const Users: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredUsers.map((user) => (
-            <UserCard key={user.id} user={user} />
+            <Link key={user.id} to={`/users/${user.id}`} className="block">
+              <UserCard user={user} />
+            </Link>
           ))}
         </div>
       )}

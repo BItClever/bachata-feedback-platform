@@ -92,6 +92,9 @@ export interface User {
   mainPhotoSmallUrl?: string;
   mainPhotoMediumUrl?: string;
   mainPhotoLargeUrl?: string;
+  reviewsReceivedCount?: number;
+  avgRating?: number | null;
+  avgRatingUnique?: number | null;
 }
 
 export interface Event {
@@ -197,6 +200,7 @@ export const usersAPI = {
 export const reviewsAPI = {
   getReviews: () => api.get<Review[]>('/reviews'),
   getUserReviews: (userId: string) => api.get<Review[]>(`/reviews/user/${userId}`),
+  getMyGiven: () => api.get<Review[]>('/reviews/mine/given'),
   createReview: (data: CreateUserReviewPayload) => api.post<Review>('/reviews', data),
 };
 

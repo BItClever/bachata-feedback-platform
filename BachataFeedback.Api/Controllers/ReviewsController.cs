@@ -91,6 +91,48 @@ public class ReviewsController : ControllerBase
         return Ok(reviews);
     }
 
+    [HttpGet("mine/given")]
+    public async Task<ActionResult<IEnumerable<ReviewDto>>> GetMyGiven()
+    {
+        var me = await _userManager.GetUserAsync(User);
+        if (me == null) return Unauthorized();
+
+        // Берём мои отзывы как автора; приватность тут не применяем, т.к. это «мои» отзывы
+        var list = await _db.Reviews
+            .Include(r => r.Reviewer)
+            .Include(r => r.Reviewee)
+            .Include(r => r.Event)
+            .Where(r => r.ReviewerId == me.Id)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync();
+
+        var result = new List<ReviewDto>();
+        foreach (var r in list)
+        {
+            result.Add(new ReviewDto
+            {
+                Id = r.Id,
+                ReviewerId = r.ReviewerId,
+                RevieweeId = r.RevieweeId,
+                ReviewerName = r.IsAnonymous ? "Анонимный пользователь" : $"{r.Reviewer.FirstName} {r.Reviewer.LastName}",
+                RevieweeName = $"{r.Reviewee.FirstName} {r.Reviewee.LastName}",
+                EventId = r.EventId,
+                EventName = r.Event?.Name,
+                LeadRatings = ReviewService.TryDeserialize<Dictionary<string, int>>(r.LeadRatings),
+                FollowRatings = ReviewService.TryDeserialize<Dictionary<string, int>>(r.FollowRatings),
+                TextReview = r.TextReview,
+                Tags = ReviewService.TryDeserialize<List<string>>(r.Tags),
+                IsAnonymous = r.IsAnonymous,
+                CreatedAt = r.CreatedAt,
+                ModerationLevel = r.ModerationLevel.ToString(),
+                ModerationSource = r.ModerationSource.ToString(),
+                ModeratedAt = r.ModeratedAt,
+                ModerationReason = r.ModerationReason
+            });
+        }
+        return Ok(result);
+    }
+
     [HttpPost]
     public async Task<ActionResult<ReviewDto>> CreateReview([FromBody] CreateReviewDto model)
     {

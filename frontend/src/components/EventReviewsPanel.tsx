@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { eventReviewsAPI, EventReview } from '../services/api';
+import { reportsAPI } from '../services/api';
 
 interface EventReviewsPanelProps {
   eventId: number;

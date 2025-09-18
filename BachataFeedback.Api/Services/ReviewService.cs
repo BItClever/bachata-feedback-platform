@@ -111,19 +111,18 @@ public class ReviewService : IReviewService
                 throw new ApplicationException("Both users must have participated in the event");
         }
 
-        // Ограничение частоты: один отзыв раз в 14 дней без события
+        // Ограничение частоты: один не-ивентовый отзыв раз в 24 часа на одного пользователя
         //if (model.EventId == null)
         //{
-        //    var twoWeeksAgo = DateTime.UtcNow.AddDays(-14);
+        //    var dayAgo = DateTime.UtcNow.AddDays(-1);
         //    var recent = await _context.Reviews
         //        .Where(r => r.ReviewerId == reviewerId
         //                 && r.RevieweeId == model.RevieweeId
         //                 && r.EventId == null
-        //                 && r.CreatedAt >= twoWeeksAgo)
+        //                 && r.CreatedAt >= dayAgo)
         //        .AnyAsync();
-
         //    if (recent)
-        //        throw new ApplicationException("You can leave a non-event review for this user once every 14 days");
+        //        throw new ApplicationException("You can leave a non-event review for this user once every 24 hours");
         //}
 
         // Санитизация и валидация рейтингов (1..5), игнорируем нули/мусор
@@ -202,7 +201,7 @@ public class ReviewService : IReviewService
         };
     }
 
-    private static T? TryDeserialize<T>(string? json)
+    public static T? TryDeserialize<T>(string? json)
     {
         if (string.IsNullOrWhiteSpace(json)) return default;
         try

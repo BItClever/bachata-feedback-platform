@@ -48,7 +48,11 @@ public class EventReviewsController : ControllerBase
             TextReview = er.TextReview,
             Tags = SafeList(er.Tags),
             IsAnonymous = er.IsAnonymous,
-            CreatedAt = er.CreatedAt
+            CreatedAt = er.CreatedAt,
+            ModerationLevel = er.ModerationLevel.ToString(),
+            ModerationSource = er.ModerationSource.ToString(),
+            ModeratedAt = er.ModeratedAt,
+            ModerationReason = er.ModerationReason
         }).ToList();
 
         var isModerator = User.IsInRole("Admin") || User.IsInRole("Moderator");

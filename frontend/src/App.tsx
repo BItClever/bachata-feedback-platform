@@ -13,6 +13,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoles from './pages/AdminRoles';
 import EventDetails from './pages/EventDetails';
 import AdminModeration from './pages/AdminModeration';
+import UserDetails from './pages/UserDetails';
+import MyReviews from './pages/MyReviews';
 
 function App() {
   return (
@@ -82,6 +84,23 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AdminModeration />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/users/:id"
+              element={
+                <ProtectedRoute>
+                  <UserDetails />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-reviews"
+              element={
+                <ProtectedRoute>
+                  <MyReviews />
                 </ProtectedRoute>
               }
             />
