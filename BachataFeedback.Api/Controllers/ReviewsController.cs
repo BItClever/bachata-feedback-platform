@@ -144,20 +144,40 @@ public class ReviewsController : ControllerBase
             return Unauthorized();
 
         var review = await _reviewService.CreateReviewAsync(currentUser.Id, model);
-        // Создаем ModerationJob и публикуем в очередь
-        _db.ModerationJobs.Add(new ModerationJob
-        {
-            TargetType = "Review",
-            TargetId = review.Id, // где review — это reviewDto.Id
-            Status = "Pending"
-        });
-        await _db.SaveChangesAsync();
 
-        await _moderationQueue.EnqueueAsync(new ModerationMessage
+        // Если только звёзды (без текста) — считаем сразу Green, без LLM
+        bool hasAnyStars =
+            (model.LeadRatings != null && model.LeadRatings.Any(kv => kv.Value >= 1 && kv.Value <= 5)) ||
+            (model.FollowRatings != null && model.FollowRatings.Any(kv => kv.Value >= 1 && kv.Value <= 5));
+        bool hasText = !string.IsNullOrWhiteSpace(model.TextReview);
+
+        if (hasAnyStars && !hasText)
         {
-            TargetType = "Review",
-            TargetId = review.Id
-        });
+            var entity = await _db.Reviews.FindAsync(review.Id);
+            if (entity != null)
+            {
+                entity.ModerationLevel = ModerationLevel.Green;
+                entity.ModerationSource = ModerationSource.None;
+                entity.ModeratedAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+            }
+        }
+        else
+        {
+            _db.ModerationJobs.Add(new ModerationJob
+            {
+                TargetType = "Review",
+                TargetId = review.Id,
+                Status = "Pending"
+            });
+            await _db.SaveChangesAsync();
+
+            await _moderationQueue.EnqueueAsync(new ModerationMessage
+            {
+                TargetType = "Review",
+                TargetId = review.Id
+            });
+        }
 
         return CreatedAtAction(nameof(GetReviews), review);
     }

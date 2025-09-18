@@ -115,19 +115,33 @@ public class EventReviewsController : ControllerBase
         _context.EventReviews.Add(review);
         await _context.SaveChangesAsync();
 
-        _context.ModerationJobs.Add(new ModerationJob
-        {
-            TargetType = "EventReview",
-            TargetId = review.Id,
-            Status = "Pending"
-        });
-        await _context.SaveChangesAsync();
+        // если только рейтинг (без текста) — сразу Green/None
+        bool hasAnyStars = ratings != null && ratings.Count > 0;
+        bool hasText = !string.IsNullOrWhiteSpace(model.TextReview);
 
-        await _moderationQueue.EnqueueAsync(new ModerationMessage
+        if (hasAnyStars && !hasText)
         {
-            TargetType = "EventReview",
-            TargetId = review.Id
-        });
+            review.ModerationLevel = ModerationLevel.Green;
+            review.ModerationSource = ModerationSource.None;
+            review.ModeratedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+        }
+        else
+        {
+            _context.ModerationJobs.Add(new ModerationJob
+            {
+                TargetType = "EventReview",
+                TargetId = review.Id,
+                Status = "Pending"
+            });
+            await _context.SaveChangesAsync();
+
+            await _moderationQueue.EnqueueAsync(new ModerationMessage
+            {
+                TargetType = "EventReview",
+                TargetId = review.Id
+            });
+        }
 
         await _context.Entry(review).Reference(r => r.Event).LoadAsync();
         await _context.Entry(review).Reference(r => r.Reviewer).LoadAsync();
