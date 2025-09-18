@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -30,11 +31,11 @@ namespace BachataFeedback.Api.Services.Moderation
             _exchange = s.GetValue<string>("Exchange") ?? "moderation";
             _queue = s.GetValue<string>("Queue") ?? "moderation.jobs";
 
-            // Открываем соединение/канал (в 7.x всё async)
+            // Соединение и канал (в 7.x всё async, в ctor ждём синхронно)
             _conn = factory.CreateConnectionAsync().GetAwaiter().GetResult();
             _ch = _conn.CreateChannelAsync().GetAwaiter().GetResult();
 
-            // Объявляем топологию (await в конструкторе нельзя — поэтому синхронно ждём)
+            // Топология: durable exchange/queue, lazy-очередь (хранить на диске)
             _ch.ExchangeDeclareAsync(
                 exchange: _exchange,
                 type: ExchangeType.Fanout,
@@ -44,12 +45,17 @@ namespace BachataFeedback.Api.Services.Moderation
                 noWait: false
             ).GetAwaiter().GetResult();
 
+            var args = new Dictionary<string, object?>
+            {
+                ["x-queue-mode"] = "lazy"
+            };
+
             _ch.QueueDeclareAsync(
                 queue: _queue,
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
-                arguments: null,
+                arguments: args,
                 passive: false,
                 noWait: false
             ).GetAwaiter().GetResult();
@@ -60,17 +66,30 @@ namespace BachataFeedback.Api.Services.Moderation
                 routingKey: "",
                 arguments: null
             ).GetAwaiter().GetResult();
+
+            // Вариант без publisher confirms (в 7.x их API сильно изменилось).
+            // Мы опираемся на durable + persistent + lazy queue.
         }
 
         public async Task EnqueueAsync(ModerationMessage message, CancellationToken ct = default)
         {
             var body = JsonSerializer.SerializeToUtf8Bytes(message);
-            // В 7.x — асинхронная публикация
+
+            // В 7.x свойства создаются напрямую. DeliveryMode — enum DeliveryModes.
+            var props = new BasicProperties
+            {
+                DeliveryMode = DeliveryModes.Persistent, // важное: запись на диск
+                ContentType = "application/json",
+                MessageId = Guid.NewGuid().ToString(),
+                Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds())
+            };
+
             await _ch.BasicPublishAsync(
                 exchange: _exchange,
                 routingKey: "",
                 mandatory: false,
                 body: body,
+                basicProperties: props,
                 cancellationToken: ct
             );
         }

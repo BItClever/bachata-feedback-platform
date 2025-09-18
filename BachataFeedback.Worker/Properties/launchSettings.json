@@ -1,0 +1,21 @@
+﻿{
+  "profiles": {
+    "BachataFeedback.Worker": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ConnectionStrings__DefaultConnection": "Server=localhost;Port=3306;Database=bachata_feedback;User Id=bachata_user;Password=bachata_pass;",
+        "RabbitMQ__Host": "localhost",
+        "RabbitMQ__Port": "5672",
+        "RabbitMQ__User": "guest",
+        "RabbitMQ__Password": "guest",
+        "RabbitMQ__Exchange": "moderation",
+        "RabbitMQ__Queue": "moderation.jobs",
+        "RabbitMQ__PollDelayMs": "1000",
+        "LLM__BaseUrl": "http://localhost:1234",
+        "LLM__Model": "qwen/qwen3-8b",
+        "LLM__MaxTokens": "1024",
+        "LLM__Temperature": "0"
+      }
+    }
+  }
+}
