@@ -128,16 +128,21 @@ const Register: React.FC = () => {
                 Password
               </label>
               <div className="relative">
-                {<input
+                <input
                   id="password"
                   name="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
-                  className="input-field"
+                  className="input-field pr-10"
                   value={formData.password}
                   onChange={handleChange}
-                />}
-                <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
                   {showPassword ? '🙈' : '👁️'}
                 </button>
               </div>
@@ -148,17 +153,22 @@ const Register: React.FC = () => {
                 Confirm Password
               </label>
               <div className="relative">
-                {<input
+                <input
                   id="confirmPassword"
                   name="confirmPassword"
-                  type="password"
+                  type={showConfirm ? 'text' : 'password'}
                   required
-                  className="input-field"
+                  className="input-field pr-10"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                />}
-                <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
-                  {showPassword ? '🙈' : '👁️'}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(v => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500"
+                  aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirm ? '🙈' : '👁️'}
                 </button>
               </div>
             </div>
