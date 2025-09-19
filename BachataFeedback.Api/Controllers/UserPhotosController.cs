@@ -211,4 +211,40 @@ public class UserPhotosController : ControllerBase
         });
         return Ok(items);
     }
+
+    [HttpGet("user/{userId}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetUserPhotos(string userId, CancellationToken ct)
+    {
+        var target = await _userManager.FindByIdAsync(userId);
+        if (target == null) return NotFound();
+
+        var current = await _userManager.GetUserAsync(User);
+        bool isOwner = current != null && current.Id == userId;
+
+        var settings = await _db.UserSettings.FindAsync(userId);
+        bool allowGuests = settings?.ShowPhotosToGuests ?? true;
+
+        if (!isOwner && !allowGuests)
+            return Ok(Array.Empty<object>());
+
+        var photos = await _db.UserPhotos
+            .Where(p => p.UserId == userId)
+            .OrderByDescending(p => p.UploadedAt)
+            .ToListAsync(ct);
+
+        string BaseUrl(HttpRequest req) => $"{req.Scheme}://{req.Host}";
+        var baseUrl = BaseUrl(Request);
+
+        var items = photos.Select(p => new
+        {
+            id = p.Id,
+            isMain = p.IsMain,
+            smallUrl = $"{baseUrl}/api/files/users/{userId}/photos/{p.Id}/small",
+            mediumUrl = $"{baseUrl}/api/files/users/{userId}/photos/{p.Id}/medium",
+            largeUrl = $"{baseUrl}/api/files/users/{userId}/photos/{p.Id}/large"
+        });
+
+        return Ok(items);
+    }
 }

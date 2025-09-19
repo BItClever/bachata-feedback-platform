@@ -54,6 +54,7 @@ const Dashboard: React.FC = () => {
   }
 
   const withStars = reviews
+    .filter(r => r.moderationLevel !== 'Red')
     .map(r => combinedAverage(r))
     .filter(x => x > 0);
   const avgAcrossAll = withStars.length ? (withStars.reduce((a, b) => a + b, 0) / withStars.length) : 0;
@@ -95,9 +96,9 @@ const Dashboard: React.FC = () => {
 
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">Recent Reviews</h2>
-              <a href="/my-reviews" className="text-primary-600 hover:underline text-sm">View all</a>
-            </div>
+          <h2 className="text-xl font-semibold text-gray-900">Recent Reviews</h2>
+          <a href="/my-reviews" className="text-primary-600 hover:underline text-sm">View all</a>
+        </div>
         {reviews.length === 0 ? (
           <div className="px-6 py-8 text-center">
             <p className="text-gray-500">No reviews yet. Dance more and get feedback!</p>
@@ -113,7 +114,7 @@ const Dashboard: React.FC = () => {
                         {r.reviewerName || 'Anonymous'}
                         {r.moderationLevel && (
                           <span
-                            title={r.moderationReason ? `Moderation: ${r.moderationLevel} • ${(r.moderationSource==='LLM'?'AI':r.moderationSource)} • ${r.moderationReason}` : `Moderation: ${r.moderationLevel}`}
+                            title={r.moderationReason ? `Moderation: ${r.moderationLevel} • ${(r.moderationSource === 'LLM' ? 'AI' : r.moderationSource)} • ${r.moderationReason}` : `Moderation: ${r.moderationLevel}`}
                             className={`ml-2 text-xs px-2 py-0.5 rounded
                             ${r.moderationLevel === 'Red' ? 'bg-red-100 text-red-800' :
                                 r.moderationLevel === 'Yellow' ? 'bg-yellow-100 text-yellow-800' :

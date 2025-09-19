@@ -36,9 +36,9 @@ const UserCard: React.FC<UserCardProps> = ({ user }) => {
           {(typeof user.reviewsReceivedCount !== 'undefined') && (
             <p className="text-gray-600 text-sm">
               {user.reviewsReceivedCount} reviews
-              {typeof user.avgRating === 'number' && (
-                <> • avg {user.avgRating?.toFixed(1)}/5</>
-              )}
+              {typeof user.avgRating === 'number' &&
+                <> • avg {user.avgRating.toFixed(1)}/5</>
+                }
             </p>
           )}
         </div>

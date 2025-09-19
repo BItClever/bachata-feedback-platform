@@ -127,8 +127,8 @@ export interface Review {
   tags?: string[];
   isAnonymous: boolean;
   createdAt: string;
-  moderationLevel?: 'Pending'|'Green'|'Yellow'|'Red';
-  moderationSource?: 'LLM'|'Manual'|'None';
+  moderationLevel?: 'Pending' | 'Green' | 'Yellow' | 'Red';
+  moderationSource?: 'LLM' | 'Manual' | 'None';
   moderatedAt?: string;
   moderationReason?: string;
 }
@@ -154,8 +154,8 @@ export interface EventReview {
   tags?: string[];
   isAnonymous: boolean;
   createdAt: string;
-    moderationLevel?: 'Pending'|'Green'|'Yellow'|'Red';
-  moderationSource?: 'LLM'|'Manual'|'None';
+  moderationLevel?: 'Pending' | 'Green' | 'Yellow' | 'Red';
+  moderationSource?: 'LLM' | 'Manual' | 'None';
   moderatedAt?: string;
   moderationReason?: string;
 }
@@ -250,6 +250,10 @@ export const userPhotosAPI = {
     api.get<{ id: number; isMain: boolean; smallUrl: string; mediumUrl: string; largeUrl: string }[]>(
       '/userphotos/me'
     ),
+  getUser: (userId: string) =>
+    api.get<{ id: number; isMain: boolean; smallUrl: string; mediumUrl: string; largeUrl: string }[]>(
+      `/userphotos/user/${userId}`
+    ),
   uploadMyPhoto: (file: File) => {
     const fd = new FormData();
     fd.append('file', file);
@@ -269,11 +273,11 @@ export const eventsAPIEx = {
 
 export const moderationAdminAPI = {
   getJobs: () => api.get('/admin/moderation/jobs'),
-  requeue: (targetType: 'Review'|'EventReview', targetId: number) =>
+  requeue: (targetType: 'Review' | 'EventReview', targetId: number) =>
     api.post('/admin/moderation/requeue', { targetType, targetId }),
-  setReviewLevel: (id: number, level: 'Green'|'Yellow'|'Red', reason?: string) =>
+  setReviewLevel: (id: number, level: 'Green' | 'Yellow' | 'Red', reason?: string) =>
     api.put(`/admin/moderation/reviews/${id}`, { level, reason }),
-  setEventReviewLevel: (id: number, level: 'Green'|'Yellow'|'Red', reason?: string) =>
+  setEventReviewLevel: (id: number, level: 'Green' | 'Yellow' | 'Red', reason?: string) =>
     api.put(`/admin/moderation/eventreviews/${id}`, { level, reason }),
 };
 

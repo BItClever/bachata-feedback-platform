@@ -135,11 +135,44 @@ public class UsersController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<UserProfileDto>> GetUser(string id)
     {
-        var user = await _userService.GetUserByIdAsync(id);
-        if (user == null)
+        var u = await _userService.GetUserByIdAsync(id);
+        if (u == null)
             return NotFound(new { message = "User not found" });
 
-        return Ok(user);
+        // Построим ссылки на фото (если есть MainPhotoPath)
+        string BaseUrl(HttpRequest req) => $"{req.Scheme}://{req.Host}";
+        var baseUrl = BaseUrl(Request);
+
+        string? Build(string userId, string? mainPhotoPath, string size)
+        {
+            // "users/{userId}/{photoId}/original.jpg" -> /api/files/users/{userId}/photos/{photoId}/{size}
+            if (string.IsNullOrEmpty(mainPhotoPath)) return null;
+            var parts = mainPhotoPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 3) return null;
+            var photoIdStr = parts[2];
+            if (!int.TryParse(photoIdStr, out var photoId)) return null;
+            return $"{baseUrl}/api/files/users/{userId}/photos/{photoId}/{size}";
+        }
+
+        var result = new
+        {
+            u.Id,
+            u.Email,
+            u.FirstName,
+            u.LastName,
+            u.Nickname,
+            u.StartDancingDate,
+            u.SelfAssessedLevel,
+            u.Bio,
+            u.DanceStyles,
+            u.CreatedAt,
+            u.DancerRole,
+            mainPhotoSmallUrl = Build(u.Id, u.MainPhotoPath, "small"),
+            mainPhotoMediumUrl = Build(u.Id, u.MainPhotoPath, "medium"),
+            mainPhotoLargeUrl = Build(u.Id, u.MainPhotoPath, "large")
+        };
+
+        return Ok(result);
     }
 
     [HttpGet("me")]
