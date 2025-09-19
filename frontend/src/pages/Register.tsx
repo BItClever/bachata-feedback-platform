@@ -13,6 +13,8 @@ const Register: React.FC = () => {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -91,7 +93,7 @@ const Register: React.FC = () => {
                 />
               </div>
             </div>
-            
+
             <div>
               <label htmlFor="nickname" className="block text-sm font-medium text-gray-700">
                 Nickname (optional)
@@ -125,30 +127,40 @@ const Register: React.FC = () => {
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="input-field"
-                value={formData.password}
-                onChange={handleChange}
-              />
+              <div className="relative">
+                {<input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  className="input-field"
+                  value={formData.password}
+                  onChange={handleChange}
+                />}
+                <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
             </div>
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
                 Confirm Password
               </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                required
-                className="input-field"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-              />
+              <div className="relative">
+                {<input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  required
+                  className="input-field"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                />}
+                <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
             </div>
           </div>
 
