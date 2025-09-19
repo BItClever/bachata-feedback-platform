@@ -12,8 +12,8 @@
         "RabbitMQ__Queue": "moderation.jobs",
         "RabbitMQ__PollDelayMs": "1000",
         "LLM__BaseUrl": "http://localhost:1234",
-        "LLM__Model": "qwen/qwen3-8b",
-        "LLM__MaxTokens": "1024",
+        "LLM__Model": "qwen/qwen3-14b",
+        "LLM__MaxTokens": "2048",
         "LLM__Temperature": "0"
       }
     }
