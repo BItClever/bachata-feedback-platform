@@ -1,6 +1,6 @@
-﻿using BachataFeedback.Core.Models;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
+namespace BachataFeedback.Core.Models;
 public class Report
 {
     public int Id { get; set; }
