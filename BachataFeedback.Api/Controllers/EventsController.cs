@@ -249,8 +249,16 @@ public class EventsController : ControllerBase
         var file = form.File;
         var currentUser = await _userManager.GetUserAsync(User);
         if (currentUser == null) return Unauthorized();
+
         var ev = await _context.Events.FirstOrDefaultAsync(e => e.Id == id, ct);
         if (ev == null) return NotFound(new { success = false, message = "Event not found" });
+
+        // Проверка прав: создатель или роли Admin/Moderator/Organizer
+        var canEdit = ev.CreatedBy == currentUser.Id
+            || User.IsInRole("Admin")
+            || User.IsInRole("Moderator")
+            || User.IsInRole("Organizer");
+        if (!canEdit) return Forbid();
 
         var maxMb = _configuration.GetValue<int>("Uploads:MaxSizeMb");
         var allowed = _configuration.GetSection("Uploads:AllowedTypes").Get<string[]>() ?? Array.Empty<string>();
