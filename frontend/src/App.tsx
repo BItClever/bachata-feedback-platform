@@ -16,6 +16,7 @@ import AdminModeration from './pages/AdminModeration';
 import UserDetails from './pages/UserDetails';
 import MyReviews from './pages/MyReviews';
 import Onboarding from './pages/Onboarding';
+import FAQ from './pages/FAQ';
 
 function App() {
   return (
@@ -113,6 +114,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/faq" element={<FAQ />} />
           </Routes>
         </Layout>
       </Router>
