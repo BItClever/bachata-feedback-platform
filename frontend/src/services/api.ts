@@ -285,4 +285,20 @@ export const statsAPI = {
   get: () => api.get<{ totalUsers: number; totalReviews: number; totalEventReviews: number; totalEvents: number }>('/stats'),
 };
 
+export const usersAPIEx = {
+  getUsersPaged: (params: { page?: number; pageSize?: number; search?: string }) =>
+    api.get<{ items: User[]; total: number; page: number; pageSize: number; totalPages: number }>(
+      '/users/paged',
+      { params }
+    ),
+};
+
+export const eventsAPIEx2 = {
+  getEventsPaged: (params: { page?: number; pageSize?: number; search?: string }) =>
+    api.get<{ items: Event[]; total: number; page: number; pageSize: number; totalPages: number }>(
+      '/events/paged',
+      { params }
+    ),
+};
+
 export default api;

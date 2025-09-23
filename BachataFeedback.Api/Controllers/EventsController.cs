@@ -88,6 +88,83 @@ public class EventsController : ControllerBase
         return Ok(list);
     }
 
+    [HttpGet("paged")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetEventsPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 12, [FromQuery] string? search = null)
+    {
+        if (page < 1) page = 1;
+        if (pageSize < 1 || pageSize > 100) pageSize = 12;
+
+        var currentUserId = _userManager.GetUserId(User);
+
+        var q = _context.Events
+            .AsNoTracking()
+            .Include(e => e.Creator)
+            .Include(e => e.Participants)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim().ToLower();
+            q = q.Where(e =>
+                e.Name.ToLower().Contains(s) ||
+                (e.Description != null && e.Description.ToLower().Contains(s)) ||
+                (e.Location != null && e.Location.ToLower().Contains(s))
+            );
+        }
+
+        var total = await q.CountAsync();
+
+        var data = await q
+            .OrderByDescending(e => e.Date)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(e => new
+            {
+                e.Id,
+                e.Name,
+                e.Date,
+                e.Location,
+                e.Description,
+                e.CreatedBy,
+                CreatorFirst = e.Creator.FirstName,
+                CreatorLast = e.Creator.LastName,
+                e.CreatedAt,
+                ParticipantCount = e.Participants.Count,
+                IsParticipating = currentUserId != null && e.Participants.Any(p => p.UserId == currentUserId),
+                e.CoverImagePath
+            })
+            .ToListAsync();
+
+        string BaseUrl(HttpRequest req) => $"{req.Scheme}://{req.Host}";
+        var baseUrl = BaseUrl(Request);
+
+        var items = data.Select(e => new EventDto
+        {
+            Id = e.Id,
+            Name = e.Name,
+            Date = e.Date,
+            Location = e.Location,
+            Description = e.Description,
+            CreatedBy = e.CreatedBy,
+            CreatorName = e.CreatorFirst + " " + e.CreatorLast,
+            CreatedAt = e.CreatedAt,
+            ParticipantCount = e.ParticipantCount,
+            IsUserParticipating = e.IsParticipating,
+            CoverImageSmallUrl = string.IsNullOrEmpty(e.CoverImagePath) ? null : $"{baseUrl}/api/files/events/{e.Id}/cover/small",
+            CoverImageLargeUrl = string.IsNullOrEmpty(e.CoverImagePath) ? null : $"{baseUrl}/api/files/events/{e.Id}/cover/large"
+        });
+
+        return Ok(new
+        {
+            items,
+            total,
+            page,
+            pageSize,
+            totalPages = (int)Math.Ceiling((double)total / pageSize)
+        });
+    }
+
     [HttpGet("{id}")]
     [AllowAnonymous]
     public async Task<ActionResult<EventDto>> GetEvent(int id)
