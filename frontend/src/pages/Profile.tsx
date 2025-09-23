@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { usersAPI, userSettingsAPI, reviewsAPI, Review } from '../services/api';
+import { usersAPI, userSettingsAPI, reviewsAPI, Review, authAPI } from '../services/api';
 import { userPhotosAPI } from '../services/api';
 
 const Profile: React.FC = () => {
@@ -110,7 +110,7 @@ const Profile: React.FC = () => {
       await usersAPI.updateUser(user.id.toString(), updateData);
 
       // Сразу забираем актуальный профиль с сервера
-      const me = await usersAPI.getCurrentUser();
+      const me = await authAPI.getCurrentUser();
       updateUserData(me.data);
 
       setFormData({
@@ -202,7 +202,7 @@ const Profile: React.FC = () => {
       await userPhotosAPI.setMain(photoId);
       await refreshPhotos();
       // обновим профиль (MainPhotoPath)
-      const me = await usersAPI.getCurrentUser();
+      const me = await authAPI.getCurrentUser();
       updateUserData(me.data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to set main photo');

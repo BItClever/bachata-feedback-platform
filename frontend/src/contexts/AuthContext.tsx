@@ -41,6 +41,7 @@ useEffect(() => {
       try {
         const response = await usersAPI.getCurrentUser();
         setUser(response.data);
+        localStorage.setItem('user', JSON.stringify(response.data));
       } catch (error: any) {
         const status = error?.response?.status;
         if (status === 401) {
