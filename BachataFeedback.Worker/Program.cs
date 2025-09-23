@@ -276,9 +276,11 @@ public class ModerationWorker : BackgroundService
         r.ModerationSource = ModerationSource.LLM;
         r.ModeratedAt = DateTime.UtcNow;
         r.ModerationReason = v.Reason;
+        r.ModerationReasonRu = string.IsNullOrWhiteSpace(v.ReasonRu) ? null : v.ReasonRu;
+        r.ModerationReasonEn = string.IsNullOrWhiteSpace(v.ReasonEn) ? null : v.ReasonEn;
     }
 
-    private static void ApplyVerdict(BachataFeedback.Core.Models.EventReview r, ModerationVerdict v)
+    private static void ApplyVerdict(EventReview r, ModerationVerdict v)
     {
         r.ModerationLevel = v.Level switch
         {
@@ -290,10 +292,12 @@ public class ModerationWorker : BackgroundService
         r.ModerationSource = ModerationSource.LLM;
         r.ModeratedAt = DateTime.UtcNow;
         r.ModerationReason = v.Reason;
+        r.ModerationReasonRu = string.IsNullOrWhiteSpace(v.ReasonRu) ? null : v.ReasonRu;
+        r.ModerationReasonEn = string.IsNullOrWhiteSpace(v.ReasonEn) ? null : v.ReasonEn;
     }
 }
 
-public record ModerationVerdict(string Level, string Reason, string[] Categories);
+public record ModerationVerdict(string Level, string Reason, string[] Categories, string? ReasonRu, string? ReasonEn);
 
 public interface ILLMClient
 {
@@ -322,12 +326,17 @@ public class LMStudioClient : ILLMClient
     {
         var system = @"You are a strict but fair moderator for social dance (bachata) feedback.
 Return ONLY valid JSON matching this schema:
-{""level"":""Green|Yellow|Red"", ""reason"":""string (<=200 chars)"", ""categories"":[""optional-tags""]}.
+{""level"":""Green|Yellow|Red"",
+ ""reason"":""string (<=200 chars, language of the input)"",
+ ""reason_ru"":""string (<=200 chars, Russian) or empty"",
+ ""reason_en"":""string (<=200 chars, English) or empty"",
+ ""categories"":[""optional-tags""]}.
 Rules:
 - Green: polite/constructive, even if negative.
 - Yellow: borderline rude, sarcasm, mild profanity, hygiene remarks stated factually; still show to users.
 - Red: direct insults, slurs, harassment, threats, sexual harassment.
-Context: Feedback may mention technique, musicality, timing, connection, hygiene (e.g., smell). Allow factual hygiene notes unless insulting.";
+Context: Feedback may mention technique, musicality, timing, connection, hygiene. Allow factual hygiene notes unless insulting.
+Output bilingual reasons (reason_ru and reason_en). If input is Russian, reason should be Russian, fill reason_ru=reason and add English to reason_en. If input is English, reason should be English, fill reason_en=reason and add Russian to reason_ru.";
         var user = $"Analyze this feedback and respond with JSON only:\n\"\"\"{input}\"\"\"";
 
         var payload = new
@@ -365,11 +374,13 @@ Context: Feedback may mention technique, musicality, timing, connection, hygiene
         var json = ExtractJson(llmText);
         var el = JsonDocument.Parse(json).RootElement;
         var level = el.GetProperty("level").GetString() ?? "Yellow";
-        var reason = el.GetProperty("reason").GetString() ?? "";
+        var reason = el.TryGetProperty("reason", out var r0) ? (r0.GetString() ?? "") : "";
+        var reasonRu = el.TryGetProperty("reason_ru", out var rru) ? (rru.GetString() ?? "") : "";
+        var reasonEn = el.TryGetProperty("reason_en", out var ren) ? (ren.GetString() ?? "") : "";
         var cats = el.TryGetProperty("categories", out var c) && c.ValueKind == JsonValueKind.Array
             ? c.EnumerateArray().Select(x => x.GetString() ?? "").Where(s => s.Length > 0).ToArray()
             : Array.Empty<string>();
-        return new ModerationVerdict(level, reason, cats);
+        return new ModerationVerdict(level, reason, cats, reasonRu, reasonEn);
     }
 
     private static string ExtractJson(string s)
