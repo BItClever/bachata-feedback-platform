@@ -492,7 +492,9 @@ const Profile: React.FC = () => {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {myPhotos.map(p => (
                     <div key={p.id} className="border rounded-lg overflow-hidden">
-                      <img src={p.mediumUrl} alt="" className="w-full h-40 object-cover" />
+                      <div className="w-full" style={{ aspectRatio: '4 / 3' }}>
+                        <img src={p.largeUrl || p.mediumUrl} alt="" className="w-full h-full object-contain" />
+                      </div>
                       <div className="p-2 flex items-center justify-between text-sm">
                         {p.isMain ? <span className="text-green-700 font-semibold">Main</span> : (
                           <button className="text-primary-600 hover:underline" onClick={() => setMainPhoto(p.id)}>Set main</button>

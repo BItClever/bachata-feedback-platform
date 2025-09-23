@@ -117,7 +117,11 @@ const UserDetails: React.FC = () => {
                 ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                         {photos.map(p => (
-                            <img key={p.id} src={p.mediumUrl} alt="" className="w-full h-40 object-cover rounded" />
+                            <div key={p.id} className="rounded overflow-hidden">
+                                <div className="w-full" style={{ aspectRatio: '4 / 3' }}>
+                                    <img src={p.largeUrl || p.mediumUrl} alt="" className="w-full h-full object-contain" />
+                                </div>
+                            </div>
                         ))}
                     </div>
                 )}

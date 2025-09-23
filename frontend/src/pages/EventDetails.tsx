@@ -212,7 +212,7 @@ const EventDetails: React.FC = () => {
                                 <div key={p.id} className="border rounded overflow-hidden bg-black">
                                     {/* Важный момент: показываем целиком, не обрезая до квадрата */}
                                     <div className="w-full" style={{ aspectRatio: '4 / 3' }}>
-                                        <img src={p.largeUrl} alt="" className="w-full h-full object-contain bg-black" />
+                                        <img src={p.largeUrl} alt="" className="w-full h-full object-contain" />
                                     </div>
                                     {(user && (ev.isUserParticipating || user.roles?.some(r => r === 'Admin' || r === 'Moderator' || r === 'Organizer') || ev.createdBy === user.id)) && (
                                         <div className="p-2 text-right">
