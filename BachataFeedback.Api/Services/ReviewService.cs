@@ -8,8 +8,8 @@ namespace BachataFeedback.Api.Services;
 
 public interface IReviewService
 {
-    Task<IEnumerable<ReviewDto>> GetAllReviewsAsync(string? requestorId);
-    Task<IEnumerable<ReviewDto>> GetUserReviewsAsync(string userId, string? requestorId);
+    Task<IEnumerable<ReviewDto>> GetAllReviewsAsync(string? requestorId, bool isModerator = false);
+    Task<IEnumerable<ReviewDto>> GetUserReviewsAsync(string userId, string? requestorId, bool isModerator = false);
     Task<ReviewDto?> CreateReviewAsync(string reviewerId, CreateReviewDto model);
     Task<bool> CanUserReviewAsync(string reviewerId, string revieweeId, int? eventId);
 }
@@ -23,14 +23,27 @@ public class ReviewService : IReviewService
         _context = context;
     }
 
-    private async Task<ReviewDto> MapToReviewDtoWithPrivacyAsync(Review review, string? requestorId)
+    private async Task<ReviewDto> MapToReviewDtoWithPrivacyAsync(Review review, string? requestorId, bool isModerator)
     {
         var dto = MapToReviewDto(review);
 
-        // если смотрит сам владелец профиля — показываем всё
+        // Если текущий — владелец профиля (reviewee) — показываем всё
         if (requestorId != null && review.RevieweeId == requestorId)
             return dto;
 
+        // Скрываем токсичный/непроверенный контент для посторонних, если не модератор
+        if (!isModerator)
+        {
+            var level = review.ModerationLevel;
+            if (level == ModerationLevel.Red || level == ModerationLevel.Pending)
+            {
+                dto.LeadRatings = null;
+                dto.FollowRatings = null;
+                dto.TextReview = null;
+            }
+        }
+
+        // Приватность по настройкам
         var settings = await _context.UserSettings.FindAsync(review.RevieweeId);
         bool showRatings = settings?.ShowRatingsToOthers ?? true;
         bool showText = settings?.ShowTextReviewsToOthers ?? true;
@@ -48,7 +61,7 @@ public class ReviewService : IReviewService
         return dto;
     }
 
-    public async Task<IEnumerable<ReviewDto>> GetAllReviewsAsync(string? requestorId)
+    public async Task<IEnumerable<ReviewDto>> GetAllReviewsAsync(string? requestorId, bool isModerator = false)
     {
         var reviewsData = await _context.Reviews
             .Include(r => r.Reviewer)
@@ -59,12 +72,11 @@ public class ReviewService : IReviewService
 
         var result = new List<ReviewDto>();
         foreach (var r in reviewsData)
-            result.Add(await MapToReviewDtoWithPrivacyAsync(r, requestorId));
-
+            result.Add(await MapToReviewDtoWithPrivacyAsync(r, requestorId, isModerator));
         return result;
     }
 
-    public async Task<IEnumerable<ReviewDto>> GetUserReviewsAsync(string userId, string? requestorId)
+    public async Task<IEnumerable<ReviewDto>> GetUserReviewsAsync(string userId, string? requestorId, bool isModerator = false)
     {
         var reviewsData = await _context.Reviews
             .Include(r => r.Reviewer)
@@ -76,8 +88,7 @@ public class ReviewService : IReviewService
 
         var result = new List<ReviewDto>();
         foreach (var r in reviewsData)
-            result.Add(await MapToReviewDtoWithPrivacyAsync(r, requestorId));
-
+            result.Add(await MapToReviewDtoWithPrivacyAsync(r, requestorId, isModerator));
         return result;
     }
 

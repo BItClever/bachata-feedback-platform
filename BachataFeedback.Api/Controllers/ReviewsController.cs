@@ -33,7 +33,8 @@ public class ReviewsController : ControllerBase
     {
         var requestorId = _userManager.GetUserId(User);
         var currentUserId = _userManager.GetUserId(User);
-        var reviews = await _reviewService.GetAllReviewsAsync(requestorId);
+        bool isModerator = User.IsInRole("Admin") || User.IsInRole("Moderator");
+        var reviews = await _reviewService.GetAllReviewsAsync(requestorId, isModerator);
         return Ok(reviews);
     }
 
@@ -48,10 +49,10 @@ public class ReviewsController : ControllerBase
             .Select(u => u.Settings)
             .FirstOrDefaultAsync();
 
-        var reviews = await _reviewService.GetUserReviewsAsync(userId, requestorId);
-
-        bool isOwner = currentUserId == userId;
         bool isModerator = User.IsInRole("Admin") || User.IsInRole("Moderator");
+        bool isOwner = currentUserId == userId;
+
+        var reviews = await _reviewService.GetUserReviewsAsync(userId, requestorId, isModerator);
 
         // Приватность по настройкам (как было)
         if (!isOwner && revieweeSettings != null)
