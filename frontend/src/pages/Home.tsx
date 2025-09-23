@@ -1,9 +1,21 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useEffect, useState } from 'react';
+import { statsAPI } from '../services/api';
 
 const Home: React.FC = () => {
   const { user } = useAuth();
+
+  const [stats, setStats] = useState<{ totalUsers: number; totalReviews: number; totalEventReviews: number; totalEvents: number } | null>(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await statsAPI.get();
+        setStats(r.data);
+      } catch { /* ignore for public */ }
+    })();
+  }, []);
 
   return (
     <div className="bg-gradient-to-br from-primary-50 to-pink-100 min-h-screen">
@@ -14,10 +26,10 @@ const Home: React.FC = () => {
             <span className="text-primary-600"> Platform</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Share feedback, improve your dancing, and connect with the bachata community. 
+            Share feedback, improve your dancing, and connect with the bachata community.
             Get constructive reviews from dance partners and track your progress.
           </p>
-          
+
           {!user ? (
             <div className="space-x-4">
               <Link
@@ -42,6 +54,23 @@ const Home: React.FC = () => {
             </Link>
           )}
         </div>
+
+        {stats && (
+          <div className="mt-10 grid grid-cols-2 md:grid-cols-3 gap-8">
+            <div className="bg-white rounded-lg shadow p-4 text-center">
+              <div className="text-2xl font-bold text-primary-600">{stats.totalUsers}</div>
+              <div className="text-gray-600 text-sm">Users</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4 text-center">
+              <div className="text-2xl font-bold text-primary-600">{stats.totalReviews + stats.totalEventReviews}</div>
+              <div className="text-gray-600 text-sm">Total reviews</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4 text-center">
+              <div className="text-2xl font-bold text-primary-600">{stats.totalEvents}</div>
+              <div className="text-gray-600 text-sm">Events</div>
+            </div>
+          </div>
+        )}
 
         {/* Features */}
         <div className="mt-20 grid md:grid-cols-3 gap-8">
