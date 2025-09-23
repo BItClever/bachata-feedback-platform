@@ -100,6 +100,8 @@ const EventReviewsPanel: React.FC<EventReviewsPanelProps> = ({ eventId }) => {
                           level={r.moderationLevel}
                           source={r.moderationSource}
                           reason={r.moderationReason}
+                          reasonRu={r.moderationReasonRu}
+                          reasonEn={r.moderationReasonEn}
                           className="ml-2"
                         />
                       )}

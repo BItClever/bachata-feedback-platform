@@ -131,6 +131,8 @@ export interface Review {
   moderationSource?: 'LLM' | 'Manual' | 'None';
   moderatedAt?: string;
   moderationReason?: string;
+  moderationReasonRu?: string;
+  moderationReasonEn?: string;
 }
 
 export interface CreateUserReviewPayload {
@@ -158,6 +160,8 @@ export interface EventReview {
   moderationSource?: 'LLM' | 'Manual' | 'None';
   moderatedAt?: string;
   moderationReason?: string;
+  moderationReasonRu?: string;
+  moderationReasonEn?: string;
 }
 
 export interface CreateEventReviewPayload {
