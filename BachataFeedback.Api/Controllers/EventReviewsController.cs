@@ -52,7 +52,9 @@ public class EventReviewsController : ControllerBase
             ModerationLevel = er.ModerationLevel.ToString(),
             ModerationSource = er.ModerationSource.ToString(),
             ModeratedAt = er.ModeratedAt,
-            ModerationReason = er.ModerationReason
+            ModerationReason = er.ModerationReason,
+            ModerationReasonRu = er.ModerationReasonRu,
+            ModerationReasonEn = er.ModerationReasonEn,
         }).ToList();
 
         var isModerator = User.IsInRole("Admin") || User.IsInRole("Moderator");
@@ -162,6 +164,8 @@ public class EventReviewsController : ControllerBase
             ModerationSource = review.ModerationSource.ToString(),
             ModeratedAt = review.ModeratedAt,
             ModerationReason = review.ModerationReason,
+            ModerationReasonRu = review.ModerationReasonRu,
+            ModerationReasonEn = review.ModerationReasonEn,
         };
 
         return CreatedAtAction(nameof(GetByEvent), new { eventId = review.EventId }, dto);
