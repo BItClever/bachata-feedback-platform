@@ -22,7 +22,8 @@ public class Event
     public string? Description { get; set; }
 
     [MaxLength(500)]
-    public string? CoverImagePath { get; set; }  // NEW: путь в объектном хранилище (original)
+    public string? CoverImagePath { get; set; }  // путь в объектном хранилище (original)
+    public ICollection<EventPhoto> Photos { get; set; } = new List<EventPhoto>();
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

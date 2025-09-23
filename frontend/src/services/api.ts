@@ -305,4 +305,23 @@ export const eventsAPIEx2 = {
     ),
 };
 
+export const eventPhotosAPI = {
+  list: (eventId: number) =>
+    api.get<{ id: number; smallUrl: string; mediumUrl: string; largeUrl: string; uploadedAt: string }[]>(
+      `/events/${eventId}/photos`
+    ),
+  upload: (eventId: number, file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api.post(`/events/${eventId}/photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+   uploadMany: (eventId: number, files: FileList | File[]) => {
+    const fd = new FormData();
+    Array.from(files).forEach(f => fd.append('files', f));
+    return api.post(`/events/${eventId}/photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+  delete: (eventId: number, photoId: number) =>
+    api.delete(`/events/${eventId}/photos/${photoId}`),
+};
+
 export default api;

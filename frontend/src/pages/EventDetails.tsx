@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Event, eventsAPI, eventsAPIEx } from '../services/api';
+import { Event, eventsAPI, eventsAPIEx, eventPhotosAPI } from '../services/api';
 import EventReviewModal from '../components/EventReviewModal';
 import EventReviewsPanel from '../components/EventReviewsPanel';
 import { useParams } from 'react-router-dom';
@@ -15,6 +15,9 @@ const EventDetails: React.FC = () => {
     const [showReview, setShowReview] = useState(false);
     const [busy, setBusy] = useState(false);
     const [coverFile, setCoverFile] = useState<File | null>(null);
+    const [album, setAlbum] = useState<Array<{ id: number; smallUrl: string; mediumUrl: string; largeUrl: string; uploadedAt: string }>>([]);
+    const [albumBusy, setAlbumBusy] = useState(false);
+    const [albumFiles, setAlbumFiles] = useState<FileList | null>(null);
     const [toast, setToast] = useState('');
 
     const canUploadCover =
@@ -27,6 +30,10 @@ const EventDetails: React.FC = () => {
             setError('');
             const r = await eventsAPI.getEvent(eventId);
             setEv(r.data);
+            try {
+                const al = await eventPhotosAPI.list(eventId);
+                setAlbum(al.data);
+            } catch { }
         } catch (e: any) {
             setError(e?.response?.data?.message || 'Failed to load event');
         } finally {
@@ -78,6 +85,36 @@ const EventDetails: React.FC = () => {
             showToast(e?.response?.data?.message || 'Cover upload failed');
         } finally {
             setBusy(false);
+        }
+    };
+
+    const uploadToAlbum = async () => {
+        if (!albumFiles || albumFiles.length === 0) return;
+        try {
+            setAlbumBusy(true);
+            await eventPhotosAPI.uploadMany(eventId, albumFiles);
+            setAlbumFiles(null);
+            const al = await eventPhotosAPI.list(eventId);
+            setAlbum(al.data);
+            showToast('Photos added to album');
+        } catch (e: any) {
+            showToast(e?.response?.data?.message || 'Album upload failed');
+        } finally {
+            setAlbumBusy(false);
+        }
+    };
+
+    const deleteAlbumPhoto = async (photoId: number) => {
+        try {
+            setAlbumBusy(true);
+            await eventPhotosAPI.delete(eventId, photoId);
+            const al = await eventPhotosAPI.list(eventId);
+            setAlbum(al.data);
+            showToast('Photo removed');
+        } catch (e: any) {
+            showToast(e?.response?.data?.message || 'Delete failed');
+        } finally {
+            setAlbumBusy(false);
         }
     };
 
@@ -150,6 +187,44 @@ const EventDetails: React.FC = () => {
                     )}
                 </div>
                 <EventReviewsPanel eventId={ev.id} />
+            </div>
+            <div className="bg-white rounded-lg shadow mt-6">
+                <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-gray-900">Event album</h2>
+                    {ev.isUserParticipating && (
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                multiple
+                                onChange={(e) => setAlbumFiles(e.target.files || null)}
+                            />
+                            <button className="btn-secondary" onClick={uploadToAlbum} disabled={albumBusy || !albumFiles || albumFiles.length === 0}>Upload</button>
+                        </div>
+                    )}
+                </div>
+                <div className="p-4">
+                    {album.length === 0 ? (
+                        <div className="text-gray-500">No photos yet.</div>
+                    ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                            {album.map(p => (
+                                <div key={p.id} className="border rounded overflow-hidden bg-black">
+                                    {/* Важный момент: показываем целиком, не обрезая до квадрата */}
+                                    <div className="w-full" style={{ aspectRatio: '4 / 3' }}>
+                                        <img src={p.largeUrl} alt="" className="w-full h-full object-contain bg-black" />
+                                    </div>
+                                    {(user && (ev.isUserParticipating || user.roles?.some(r => r === 'Admin' || r === 'Moderator' || r === 'Organizer') || ev.createdBy === user.id)) && (
+                                        <div className="p-2 text-right">
+                                            <button className="text-sm text-red-600 hover:underline" onClick={() => deleteAlbumPhoto(p.id)} disabled={albumBusy}>Delete</button>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    <p className="text-xs text-gray-500 mt-2">Tip: images are shown uncropped (object-contain) with 4:3 frame to avoid weird aspect issues.</p>
+                </div>
             </div>
 
             {showReview && (

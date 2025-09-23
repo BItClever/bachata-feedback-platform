@@ -64,4 +64,24 @@ public class FilesController : ControllerBase
         Response.Headers.CacheControl = "public, max-age=3600";
         return File(stream, "image/jpeg");
     }
+
+    [HttpGet("events/{eventId}/photos/{photoId}/{size}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetEventPhoto(int eventId, int photoId, string size, CancellationToken ct)
+    {
+        if (size is not ("small" or "medium" or "large" or "original"))
+            return BadRequest(new { success = false, message = "Invalid size" });
+
+        var ph = await _db.EventPhotos.AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == photoId && p.EventId == eventId, ct);
+        if (ph == null || string.IsNullOrEmpty(ph.FilePath))
+            return NotFound();
+
+        var key = MapVariant(ph.FilePath, size);
+        if (!await _storage.ExistsAsync(key, ct)) return NotFound();
+
+        var stream = await _storage.GetObjectAsync(key, ct);
+        Response.Headers.CacheControl = "public, max-age=3600";
+        return File(stream, "image/jpeg");
+    }
 }

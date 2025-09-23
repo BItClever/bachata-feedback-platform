@@ -19,6 +19,7 @@ public class ApplicationDbContext : IdentityDbContext<User>
     public DbSet<Report> Reports { get; set; }
     public DbSet<EventReview> EventReviews { get; set; }
     public DbSet<ModerationJob> ModerationJobs { get; set; }
+    public DbSet<EventPhoto> EventPhotos { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -102,5 +103,17 @@ public class ApplicationDbContext : IdentityDbContext<User>
         builder.Entity<EventParticipant>()
             .HasIndex(ep => new { ep.UserId, ep.EventId })
             .IsUnique();
+
+        builder.Entity<EventPhoto>()
+            .HasOne(p => p.Event)
+            .WithMany(e => e.Photos)
+            .HasForeignKey(p => p.EventId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<EventPhoto>()
+            .HasOne(p => p.Uploader)
+            .WithMany()
+            .HasForeignKey(p => p.UploaderId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
