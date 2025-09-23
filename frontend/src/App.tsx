@@ -15,6 +15,7 @@ import EventDetails from './pages/EventDetails';
 import AdminModeration from './pages/AdminModeration';
 import UserDetails from './pages/UserDetails';
 import MyReviews from './pages/MyReviews';
+import Onboarding from './pages/Onboarding';
 
 function App() {
   return (
@@ -101,6 +102,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <MyReviews />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/onboarding"
+              element={
+                <ProtectedRoute>
+                  <Onboarding />
                 </ProtectedRoute>
               }
             />

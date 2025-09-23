@@ -45,7 +45,7 @@ const Register: React.FC = () => {
         lastName: formData.lastName,
         nickname: formData.nickname || undefined
       });
-      navigate('/dashboard');
+      navigate('/onboarding');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Registration failed');
     } finally {
