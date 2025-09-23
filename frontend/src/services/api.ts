@@ -281,4 +281,8 @@ export const moderationAdminAPI = {
     api.put(`/admin/moderation/eventreviews/${id}`, { level, reason }),
 };
 
+export const statsAPI = {
+  get: () => api.get<{ totalUsers: number; totalReviews: number; totalEventReviews: number; totalEvents: number }>('/stats'),
+};
+
 export default api;
