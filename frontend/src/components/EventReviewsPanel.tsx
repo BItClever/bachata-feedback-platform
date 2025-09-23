@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { eventReviewsAPI, EventReview } from '../services/api';
 import { reportsAPI } from '../services/api';
+import { ReasonBadge } from '../components/ReasonBadge';
 
 interface EventReviewsPanelProps {
   eventId: number;
@@ -95,21 +96,12 @@ const EventReviewsPanel: React.FC<EventReviewsPanelProps> = ({ eventId }) => {
                     <div className="text-sm text-gray-800">
                       {r.isAnonymous ? 'Anonymous' : r.reviewerName}
                       {r.moderationLevel && (
-                        <span
-                          title={
-                            r.moderationReason
-                              ? `Moderation: ${r.moderationLevel} • ${r.moderationSource || 'AI'} • ${r.moderationReason}`
-                              : `Moderation: ${r.moderationLevel} • ${r.moderationSource || 'AI'}`
-                          }
-                          className={`ml-2 text-xs px-2 py-0.5 rounded
-                            ${r.moderationLevel === 'Red' ? 'bg-red-100 text-red-800' :
-                              r.moderationLevel === 'Yellow' ? 'bg-yellow-100 text-yellow-800' :
-                                r.moderationLevel === 'Green' ? 'bg-green-100 text-green-800' :
-                                  'bg-gray-200 text-gray-700' // Pending
-                            }`}
-                        >
-                          {r.moderationLevel || 'Pending'}
-                        </span>
+                        <ReasonBadge
+                          level={r.moderationLevel}
+                          source={r.moderationSource}
+                          reason={r.moderationReason}
+                          className="ml-2"
+                        />
                       )}
                     </div>
                     <div className="text-xs text-gray-500">{new Date(r.createdAt).toLocaleDateString()}</div>

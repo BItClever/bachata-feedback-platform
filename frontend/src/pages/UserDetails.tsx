@@ -4,6 +4,7 @@ import { usersAPI, reviewsAPI, Review, User, userPhotosAPI } from '../services/a
 import ReviewModal from '../components/ReviewModal';
 import { useAuth } from '../contexts/AuthContext';
 import { reportsAPI } from '../services/api';
+import { ReasonBadge } from '../components/ReasonBadge';
 
 const badge = (level?: string) =>
     level === 'Red' ? 'bg-red-100 text-red-800' :
@@ -136,11 +137,12 @@ const UserDetails: React.FC = () => {
                                     <div className="text-sm text-gray-800">
                                         {r.reviewerName || 'Anonymous'}
                                         {r.moderationLevel && (
-                                            <span
-                                                title={r.moderationReason ? `Moderation: ${r.moderationLevel} • ${(r.moderationSource === 'LLM' ? 'AI' : r.moderationSource)} • ${r.moderationReason}` : `Moderation: ${r.moderationLevel} • ${(r.moderationSource === 'LLM' ? 'AI' : r.moderationSource)}`}
-                                                className={`ml-2 text-xs px-2 py-0.5 rounded ${badge(r.moderationLevel)}`}>
-                                                {r.moderationLevel || 'Pending'}
-                                            </span>
+                                            <ReasonBadge
+                                                level={r.moderationLevel}
+                                                source={r.moderationSource}
+                                                reason={r.moderationReason}
+                                                className="ml-2"
+                                            />
                                         )}
                                     </div>
                                     <div className="text-xs text-gray-500">{new Date(r.createdAt).toLocaleDateString()}</div>

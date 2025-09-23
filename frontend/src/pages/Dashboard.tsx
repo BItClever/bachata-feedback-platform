@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { reviewsAPI, Review } from '../services/api';
+import { ReasonBadge } from '../components/ReasonBadge';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -113,17 +114,12 @@ const Dashboard: React.FC = () => {
                       <span className="text-sm font-medium text-gray-900">
                         {r.reviewerName || 'Anonymous'}
                         {r.moderationLevel && (
-                          <span
-                            title={r.moderationReason ? `Moderation: ${r.moderationLevel} • ${(r.moderationSource === 'LLM' ? 'AI' : r.moderationSource)} • ${r.moderationReason}` : `Moderation: ${r.moderationLevel}`}
-                            className={`ml-2 text-xs px-2 py-0.5 rounded
-                            ${r.moderationLevel === 'Red' ? 'bg-red-100 text-red-800' :
-                                r.moderationLevel === 'Yellow' ? 'bg-yellow-100 text-yellow-800' :
-                                  r.moderationLevel === 'Green' ? 'bg-green-100 text-green-800' :
-                                    'bg-gray-200 text-gray-700'
-                              }`}
-                          >
-                            {r.moderationLevel || 'Pending'}
-                          </span>
+                          <ReasonBadge
+                            level={r.moderationLevel}
+                            source={r.moderationSource}
+                            reason={r.moderationReason}
+                            className="ml-2"
+                          />
                         )}
                       </span>
                       {r.eventName && (
