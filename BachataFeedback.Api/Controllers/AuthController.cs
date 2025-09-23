@@ -1,5 +1,5 @@
-﻿using BachataFeedback.Api.Services;
-using BachataFeedback.Core.DTOs;
+﻿using BachataFeedback.Api.DTOs;
+using BachataFeedback.Api.Services;
 using BachataFeedback.Core.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;

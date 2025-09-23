@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace BachataFeedback.Core.DTOs;
+namespace BachataFeedback.Api.DTOs;
 
 public class CreateReviewDto
 {
@@ -40,4 +40,6 @@ public class ReviewDto
     public string? ModerationSource { get; set; } // "LLM"|"Manual"|"None"
     public DateTime? ModeratedAt { get; set; }
     public string? ModerationReason { get; set; }
+    public string? ModerationReasonRu { get; set; }
+    public string? ModerationReasonEn { get; set; }
 }

@@ -32,6 +32,11 @@ public class EventReview
     public DateTime? ModeratedAt { get; set; }
     [MaxLength(300)]
     public string? ModerationReason { get; set; }
+    [MaxLength(300)]
+    public string? ModerationReasonRu { get; set; }
+
+    [MaxLength(300)]
+    public string? ModerationReasonEn { get; set; }
 
     // Navigation
     public User Reviewer { get; set; } = null!;

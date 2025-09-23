@@ -1,6 +1,6 @@
 ﻿using BachataFeedback.Api.Data;
+using BachataFeedback.Api.DTOs;
 using BachataFeedback.Api.Services;
-using BachataFeedback.Core.DTOs;
 using BachataFeedback.Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;

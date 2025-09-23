@@ -34,5 +34,7 @@ namespace BachataFeedback.Api.DTOs
         public string? ModerationSource { get; set; }
         public DateTime? ModeratedAt { get; set; }
         public string? ModerationReason { get; set; }
+        public string? ModerationReasonRu { get; set; }
+        public string? ModerationReasonEn { get; set; }
     }
 }

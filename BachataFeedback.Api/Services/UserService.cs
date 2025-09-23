@@ -1,5 +1,5 @@
 ﻿using BachataFeedback.Api.Data;
-using BachataFeedback.Core.DTOs;
+using BachataFeedback.Api.DTOs;
 using BachataFeedback.Core.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;

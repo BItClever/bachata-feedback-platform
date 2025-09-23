@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace BachataFeedback.Core.DTOs;
+namespace BachataFeedback.Api.DTOs;
 
 public class CreateEventDto
 {

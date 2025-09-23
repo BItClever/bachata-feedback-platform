@@ -1,5 +1,5 @@
 ﻿using BachataFeedback.Api.Data;
-using BachataFeedback.Core.DTOs;
+using BachataFeedback.Api.DTOs;
 using BachataFeedback.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
@@ -209,6 +209,8 @@ public class ReviewService : IReviewService
             ModerationSource = review.ModerationSource.ToString(),
             ModeratedAt = review.ModeratedAt,
             ModerationReason = review.ModerationReason,
+            ModerationReasonRu = review.ModerationReasonRu,
+            ModerationReasonEn = review.ModerationReasonEn,
         };
     }
 

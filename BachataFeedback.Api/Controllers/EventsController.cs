@@ -3,7 +3,6 @@ using BachataFeedback.Api.DTOs;
 using BachataFeedback.Api.Services.Antivirus;
 using BachataFeedback.Api.Services.Images;
 using BachataFeedback.Api.Services.Storage;
-using BachataFeedback.Core.DTOs;
 using BachataFeedback.Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
