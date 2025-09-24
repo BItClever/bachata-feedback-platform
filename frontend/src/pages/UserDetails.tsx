@@ -81,10 +81,18 @@ const UserDetails: React.FC = () => {
                 <div className="flex items-center">
                     <div className="w-20 h-20 rounded-full overflow-hidden bg-primary-100 flex items-center justify-center">
                         {user.mainPhotoSmallUrl
-                            ? <img src={user.mainPhotoSmallUrl} alt="" className="w-20 h-20 object-cover" />
-                            : mainFromPhotos
-                                ? <img src={mainFromPhotos.smallUrl} alt="" className="w-20 h-20 object-cover" />
-                                : <span className="text-primary-600 font-bold text-xl">{user.firstName[0]}{user.lastName[0]}</span>}
+                            ? <img
+                                src={user.mainPhotoSmallUrl}
+                                alt=""
+                                className="w-20 h-20 object-cover"
+                                style={{
+                                    objectPosition:
+                                        user.mainPhotoFocusX != null && user.mainPhotoFocusY != null
+                                            ? `${user.mainPhotoFocusX}% ${user.mainPhotoFocusY}%`
+                                            : '50% 50%',
+                                }}
+                            />
+                            : <span className="text-primary-600 font-bold text-xl">{user.firstName[0]}{user.lastName[0]}</span>}
                     </div>
                     <div className="ml-4">
                         <h1 className="text-2xl font-bold">{user.firstName} {user.lastName}</h1>

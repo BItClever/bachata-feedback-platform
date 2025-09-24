@@ -25,7 +25,7 @@ const Profile: React.FC = () => {
     follow: {}
   });
   // Photos
-  const [myPhotos, setMyPhotos] = useState<Array<{ id: number; isMain: boolean; smallUrl: string; mediumUrl: string; largeUrl: string }>>([]);
+  const [myPhotos, setMyPhotos] = useState<Array<{ id: number; isMain: boolean; smallUrl: string; mediumUrl: string; largeUrl: string; focusX?: number; focusY?: number }>>([]);
   const [uploading, setUploading] = useState(false);
 
   // Обновляем formData и загружаем отзывы/фото когда user изменяется
@@ -251,7 +251,10 @@ const Profile: React.FC = () => {
         <div className="flex items-center space-x-6 mb-6">
           <div className="w-24 h-24 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden">
             {mainPhoto ? (
-              <img src={mainPhoto.smallUrl} alt="avatar" className="w-24 h-24 object-cover" />
+              <img src={mainPhoto.smallUrl}
+                alt="avatar"
+                className="w-24 h-24 object-cover"
+                style={{ objectPosition: `${mainPhoto.focusX ?? 50}% ${mainPhoto.focusY ?? 50}%` }} />
             ) : (
               <span className="text-primary-600 font-bold text-2xl">
                 {user?.firstName?.[0]}{user?.lastName?.[0]}
@@ -500,6 +503,68 @@ const Profile: React.FC = () => {
                           <button className="text-primary-600 hover:underline" onClick={() => setMainPhoto(p.id)}>Set main</button>
                         )}
                         <button className="text-red-600 hover:underline" onClick={() => deletePhoto(p.id)}>Delete</button>
+                      </div>
+                      <div className="p-2 space-y-2">
+
+                        {/* Мини-превью круглого аватара с текущим фокусом */}
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full overflow-hidden border">
+                            <img
+                              src={p.smallUrl || p.mediumUrl}
+                              alt=""
+                              className="w-full h-full object-cover"
+                              style={{ objectPosition: `${p.focusX ?? 50}% ${p.focusY ?? 50}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-gray-600">Avatar preview</span>
+                        </div>
+
+                        {/* Контролы фокуса */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">Horizontal focus (X)</label>
+                            <input
+                              type="range" min={0} max={100}
+                              value={p.focusX ?? 50}
+                              onChange={(e) => {
+                                const v = Number(e.target.value);
+                                setMyPhotos(prev => prev.map(ph => ph.id === p.id ? { ...ph, focusX: v } : ph));
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">Vertical focus (Y)</label>
+                            <input
+                              type="range" min={0} max={100}
+                              value={p.focusY ?? 50}
+                              onChange={(e) => {
+                                const v = Number(e.target.value);
+                                setMyPhotos(prev => prev.map(ph => ph.id === p.id ? { ...ph, focusY: v } : ph));
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <button
+                            className="btn-secondary btn-sm"
+                            onClick={async () => {
+                              try {
+                                const fx = p.focusX ?? 50;
+                                const fy = p.focusY ?? 50;
+                                await userPhotosAPI.updateFocus(p.id, fx, fy);
+                                // обновим список фото и профиль (чтобы main аватар тоже обновился везде)
+                                await refreshPhotos();
+                                const me = await authAPI.getCurrentUser();
+                                updateUserData(me.data);
+                              } catch (e: any) {
+                                setError(e?.response?.data?.message || 'Failed to save focus');
+                              }
+                            }}
+                          >
+                            Save focus
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}

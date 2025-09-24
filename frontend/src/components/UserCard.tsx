@@ -19,6 +19,12 @@ const UserCard: React.FC<UserCardProps> = ({ user }) => {
                 src={user.mainPhotoSmallUrl}
                 alt={`${user.firstName} ${user.lastName}`}
                 className="w-16 h-16 object-cover rounded-full"
+                style={{
+                  objectPosition:
+                    user.mainPhotoFocusX != null && user.mainPhotoFocusY != null
+                      ? `${user.mainPhotoFocusX}% ${user.mainPhotoFocusY}%`
+                      : '50% 50%',
+                }}
                 loading="lazy"
               />
             ) : (
@@ -38,7 +44,7 @@ const UserCard: React.FC<UserCardProps> = ({ user }) => {
               {user.reviewsReceivedCount} reviews
               {typeof user.avgRating === 'number' &&
                 <> • avg {user.avgRating.toFixed(1)}/5</>
-                }
+              }
             </p>
           )}
         </div>

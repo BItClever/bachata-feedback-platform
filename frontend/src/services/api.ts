@@ -95,6 +95,8 @@ export interface User {
   reviewsReceivedCount?: number;
   avgRating?: number | null;
   avgRatingUnique?: number | null;
+  mainPhotoFocusX?: number | null;
+  mainPhotoFocusY?: number | null;
 }
 
 export interface Event {
@@ -251,11 +253,11 @@ export const adminRolesAPI = {
 
 export const userPhotosAPI = {
   getMine: () =>
-    api.get<{ id: number; isMain: boolean; smallUrl: string; mediumUrl: string; largeUrl: string }[]>(
+    api.get<{ id: number; isMain: boolean; smallUrl: string; mediumUrl: string; largeUrl: string; focusX?: number; focusY?: number }[]>(
       '/userphotos/me'
     ),
   getUser: (userId: string) =>
-    api.get<{ id: number; isMain: boolean; smallUrl: string; mediumUrl: string; largeUrl: string }[]>(
+    api.get<{ id: number; isMain: boolean; smallUrl: string; mediumUrl: string; largeUrl: string; focusX?: number; focusY?: number }[]>(
       `/userphotos/user/${userId}`
     ),
   uploadMyPhoto: (file: File) => {
@@ -263,6 +265,8 @@ export const userPhotosAPI = {
     fd.append('file', file);
     return api.post('/userphotos/me/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
   },
+  updateFocus: (photoId: number, focusX: number, focusY: number) =>
+    api.patch(`/userphotos/${photoId}/focus`, { focusX, focusY }),
   setMain: (photoId: number) => api.post('/userphotos/me/set-main', { photoId }),
   delete: (photoId: number) => api.delete(`/userphotos/me/${photoId}`),
 };
@@ -315,7 +319,7 @@ export const eventPhotosAPI = {
     fd.append('file', file);
     return api.post(`/events/${eventId}/photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
   },
-   uploadMany: (eventId: number, files: FileList | File[]) => {
+  uploadMany: (eventId: number, files: FileList | File[]) => {
     const fd = new FormData();
     Array.from(files).forEach(f => fd.append('files', f));
     return api.post(`/events/${eventId}/photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });

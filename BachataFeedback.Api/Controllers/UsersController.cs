@@ -46,20 +46,13 @@ public class UsersController : ControllerBase
             .Select(r => new { r.RevieweeId, r.ReviewerId, r.LeadRatings, r.FollowRatings })
             .ToListAsync();
 
-        // хелпер: среднее по словарю
-        static double AvgDict(string? json)
-        {
-            if (string.IsNullOrWhiteSpace(json)) return double.NaN;
-            try
-            {
-                var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(json);
-                if (dict == null || dict.Count == 0) return double.NaN;
-                var vals = dict.Values.Where(v => v >= 1 && v <= 5).ToArray();
-                if (vals.Length == 0) return double.NaN;
-                return vals.Average();
-            }
-            catch { return double.NaN; }
-        }
+        var mainPhotoFocus = await _db.UserPhotos
+            .AsNoTracking()
+            .Where(p => ids.Contains(p.UserId) && p.IsMain)
+            .Select(p => new { p.UserId, p.FocusX, p.FocusY })
+            .ToListAsync();
+
+        var focusMap = mainPhotoFocus.ToDictionary(x => x.UserId, x => new { x.FocusX, x.FocusY });
 
         var grouped = reviews.GroupBy(r => r.RevieweeId).ToDictionary(
             g => g.Key,
@@ -123,6 +116,8 @@ public class UsersController : ControllerBase
                 mainPhotoSmallUrl = Build(u.Id, u.MainPhotoPath, "small"),
                 mainPhotoMediumUrl = Build(u.Id, u.MainPhotoPath, "medium"),
                 mainPhotoLargeUrl = Build(u.Id, u.MainPhotoPath, "large"),
+                mainPhotoFocusX = focusMap.TryGetValue(u.Id, out var f) ? (float?)f.FocusX : null,
+                mainPhotoFocusY = focusMap.TryGetValue(u.Id, out var f2) ? (float?)f2.FocusY : null,
                 reviewsReceivedCount = stat?.count ?? 0,
                 avgRating = stat?.avg,         // обычное среднее по звёздам
                 avgRatingUnique = stat?.avgUnique // среднее по авторам
@@ -198,19 +193,13 @@ public class UsersController : ControllerBase
             .Select(r => new { r.RevieweeId, r.ReviewerId, r.LeadRatings, r.FollowRatings })
             .ToListAsync();
 
-        static double AvgDict(string? json)
-        {
-            if (string.IsNullOrWhiteSpace(json)) return double.NaN;
-            try
-            {
-                var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(json);
-                if (dict == null || dict.Count == 0) return double.NaN;
-                var vals = dict.Values.Where(v => v >= 1 && v <= 5).ToArray();
-                if (vals.Length == 0) return double.NaN;
-                return vals.Average();
-            }
-            catch { return double.NaN; }
-        }
+        var mainPhotoFocus = await _db.UserPhotos
+            .AsNoTracking()
+            .Where(p => ids.Contains(p.UserId) && p.IsMain)
+            .Select(p => new { p.UserId, p.FocusX, p.FocusY })
+            .ToListAsync();
+
+        var focusMap = mainPhotoFocus.ToDictionary(x => x.UserId, x => new { x.FocusX, x.FocusY });
 
         var grouped = reviews.GroupBy(r => r.RevieweeId).ToDictionary(
             g => g.Key,
@@ -274,6 +263,8 @@ public class UsersController : ControllerBase
                 mainPhotoSmallUrl = Build(u.Id, u.MainPhotoPath, "small"),
                 mainPhotoMediumUrl = Build(u.Id, u.MainPhotoPath, "medium"),
                 mainPhotoLargeUrl = Build(u.Id, u.MainPhotoPath, "large"),
+                mainPhotoFocusX = focusMap.TryGetValue(u.Id, out var f) ? (float?)f.FocusX : null,
+                mainPhotoFocusY = focusMap.TryGetValue(u.Id, out var f2) ? (float?)f2.FocusY : null,
                 reviewsReceivedCount = stat?.count ?? 0,
                 avgRating = stat?.avg,
                 avgRatingUnique = stat?.avgUnique
@@ -312,6 +303,12 @@ public class UsersController : ControllerBase
             return $"{baseUrl}/api/files/users/{userId}/photos/{photoId}/{size}";
         }
 
+        var mainPhotoFocus = await _db.UserPhotos
+            .AsNoTracking()
+            .Where(p => p.UserId == id && p.IsMain)
+            .Select(p => new { p.FocusX, p.FocusY })
+            .FirstOrDefaultAsync();
+
         var result = new
         {
             u.Id,
@@ -327,7 +324,9 @@ public class UsersController : ControllerBase
             u.DancerRole,
             mainPhotoSmallUrl = Build(u.Id, u.MainPhotoPath, "small"),
             mainPhotoMediumUrl = Build(u.Id, u.MainPhotoPath, "medium"),
-            mainPhotoLargeUrl = Build(u.Id, u.MainPhotoPath, "large")
+            mainPhotoLargeUrl = Build(u.Id, u.MainPhotoPath, "large"),
+            mainPhotoFocusX = mainPhotoFocus?.FocusX,
+            mainPhotoFocusY = mainPhotoFocus?.FocusY,
         };
 
         return Ok(result);
@@ -362,5 +361,20 @@ public class UsersController : ControllerBase
 
         // Если добавили поле DancerRole в UserProfileDto — оно придет автоматически
         return Ok(updated);
+    }
+
+    // хелпер: среднее по словарю
+    private static double AvgDict(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return double.NaN;
+        try
+        {
+            var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(json);
+            if (dict == null || dict.Count == 0) return double.NaN;
+            var vals = dict.Values.Where(v => v >= 1 && v <= 5).ToArray();
+            if (vals.Length == 0) return double.NaN;
+            return vals.Average();
+        }
+        catch { return double.NaN; }
     }
 }

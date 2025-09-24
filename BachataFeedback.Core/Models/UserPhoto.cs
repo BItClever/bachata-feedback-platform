@@ -23,4 +23,6 @@ public class UserPhoto
     // Navigation properties
     public User User { get; set; } = null!;
     public ICollection<Report> Reports { get; set; } = new List<Report>();
+    public float FocusX { get; set; } = 50f; // 0..100 (%)
+    public float FocusY { get; set; } = 50f; // 0..100 (%)
 }

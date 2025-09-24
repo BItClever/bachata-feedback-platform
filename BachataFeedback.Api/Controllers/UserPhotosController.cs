@@ -155,6 +155,27 @@ public class UserPhotosController : ControllerBase
         return Ok(new { success = true });
     }
 
+    [HttpPatch("{photoId}/focus")]
+    [Authorize]
+    public async Task<IActionResult> UpdateFocus(int photoId, [FromBody] UpdatePhotoFocusDto dto, CancellationToken ct)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Unauthorized();
+
+        var photo = await _db.UserPhotos.FirstOrDefaultAsync(p => p.Id == photoId && p.UserId == user.Id, ct);
+        if (photo == null) return NotFound(new { success = false, message = "Photo not found" });
+
+        // Валидация на всякий случай (атрибуты уже есть)
+        if (dto.FocusX < 0 || dto.FocusX > 100 || dto.FocusY < 0 || dto.FocusY > 100)
+            return BadRequest(new { success = false, message = "Focus must be within 0..100" });
+
+        photo.FocusX = dto.FocusX;
+        photo.FocusY = dto.FocusY;
+        await _db.SaveChangesAsync(ct);
+
+        return Ok(new { success = true });
+    }
+
     [HttpDelete("me/{photoId}")]
     public async Task<IActionResult> Delete(int photoId, CancellationToken ct)
     {
@@ -205,6 +226,8 @@ public class UserPhotosController : ControllerBase
         {
             id = p.Id,
             isMain = p.IsMain,
+            focusX = p.FocusX,
+            focusY = p.FocusY,
             smallUrl = $"{baseUrl}/api/files/users/{current.Id}/photos/{p.Id}/small",
             mediumUrl = $"{baseUrl}/api/files/users/{current.Id}/photos/{p.Id}/medium",
             largeUrl = $"{baseUrl}/api/files/users/{current.Id}/photos/{p.Id}/large"
@@ -240,6 +263,8 @@ public class UserPhotosController : ControllerBase
         {
             id = p.Id,
             isMain = p.IsMain,
+            focusX = p.FocusX,
+            focusY = p.FocusY,
             smallUrl = $"{baseUrl}/api/files/users/{userId}/photos/{p.Id}/small",
             mediumUrl = $"{baseUrl}/api/files/users/{userId}/photos/{p.Id}/medium",
             largeUrl = $"{baseUrl}/api/files/users/{userId}/photos/{p.Id}/large"
