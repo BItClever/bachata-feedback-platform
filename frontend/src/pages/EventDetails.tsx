@@ -209,10 +209,10 @@ const EventDetails: React.FC = () => {
                     ) : (
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                             {album.map(p => (
-                                <div key={p.id} className="border rounded overflow-hidden bg-black">
+                                <div key={p.id} className="border rounded overflow-hidden">
                                     {/* Важный момент: показываем целиком, не обрезая до квадрата */}
                                     <div className="w-full" style={{ aspectRatio: '4 / 3' }}>
-                                        <img src={p.largeUrl} alt="" className="w-full h-full object-contain" />
+                                        <img src={p.largeUrl} alt="" className="object-contain" />
                                     </div>
                                     {(user && (ev.isUserParticipating || user.roles?.some(r => r === 'Admin' || r === 'Moderator' || r === 'Organizer') || ev.createdBy === user.id)) && (
                                         <div className="p-2 text-right">
