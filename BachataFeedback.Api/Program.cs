@@ -114,6 +114,7 @@ builder.Services.AddSingleton<IImageProcessor, ImageProcessor>();
 builder.Services.AddSingleton<IModerationQueue, RabbitMqModerationQueue>();
 
 builder.Services.AddControllers();
+builder.Services.AddHealthChecks();
 
 // Unified model validation error
 builder.Services.Configure<ApiBehaviorOptions>(options =>
@@ -198,6 +199,8 @@ app.UseCors("Frontend");
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHealthChecks("/health");
 
 app.MapControllers();
 
