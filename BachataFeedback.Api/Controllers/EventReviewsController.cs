@@ -57,18 +57,21 @@ public class EventReviewsController : ControllerBase
             ModerationReasonEn = er.ModerationReasonEn,
         }).ToList();
 
+        var requestorId = _userManager.GetUserId(User);
         var isModerator = User.IsInRole("Admin") || User.IsInRole("Moderator");
+
+        // 1) Фильтр Pending/Red: только модератор или автор видят такие элементы
         if (!isModerator)
         {
-            foreach (var r in result)
-            {
-                var level = r.ModerationLevel ?? "Pending";
-                if (level == "Red" || level == "Pending")
+            result = result
+                .Where(r =>
                 {
-                    r.Ratings = null;
-                    r.TextReview = null;
-                }
-            }
+                    var level = r.ModerationLevel ?? "Pending";
+                    if (level == "Red" || level == "Pending")
+                        return requestorId != null && r.ReviewerId == requestorId;
+                    return true;
+                })
+                .ToList();
         }
 
         return Ok(result);
