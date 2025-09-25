@@ -73,9 +73,7 @@ const MyReviews: React.FC = () => {
                   return parts.length ? <span className="font-semibold">{(parts.reduce((a, b) => a + b, 0) / parts.length).toFixed(1)}/5</span> : null;
                 })()}
               </div>
-              {r.moderationSource === 'LLM' && (
-                <button className="text-xs text-red-700 hover:underline" onClick={() => report(r.id, 'Review')}>Report</button>
-              )}
+              <button className="text-xs text-red-700 hover:underline" onClick={() => report(r.id, 'Review')}>Report</button>
             </div>
           </div>
         ))}

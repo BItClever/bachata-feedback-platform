@@ -113,13 +113,11 @@ const EventReviewsPanel: React.FC<EventReviewsPanelProps> = ({ eventId }) => {
                   )}
                   <div className="mt-2 flex items-center justify-between">
                     <div className="text-sm text-gray-600"></div>
-                    {r.moderationSource === 'LLM' && (
-                      <button
-                        className="text-xs text-red-700 hover:underline"
-                        onClick={async () => { try { await reportsAPI.create({ targetType: 'EventReview', targetId: r.id, reason: 'Inappropriate' }); alert('Report submitted'); } catch (e: any) { alert(e.response?.data?.message || 'Failed'); } }}>
-                        Report
-                      </button>
-                    )}
+                    <button
+                      className="text-xs text-red-700 hover:underline"
+                      onClick={async () => { try { await reportsAPI.create({ targetType: 'EventReview', targetId: r.id, reason: 'Inappropriate' }); alert('Report submitted'); } catch (e: any) { alert(e.response?.data?.message || 'Failed'); } }}>
+                      Report
+                    </button>
                   </div>
                   {r.ratings && (
                     <div className="mt-2 grid grid-cols-2 gap-1 text-xs text-gray-600">

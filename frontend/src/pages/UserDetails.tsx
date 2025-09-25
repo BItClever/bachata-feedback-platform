@@ -173,9 +173,7 @@ const UserDetails: React.FC = () => {
                                             return isNaN(v) ? null : <span className="font-semibold">{v.toFixed(1)}/5</span>;
                                         })()}
                                     </div>
-                                    {r.moderationSource === 'LLM' && (
-                                        <button className="text-xs text-red-700 hover:underline" onClick={() => report(r.id)}>Report</button>
-                                    )}
+                                    <button className="text-xs text-red-700 hover:underline" onClick={() => report(r.id)}>Report</button>
                                 </div>
                             </div>
                         ))}
