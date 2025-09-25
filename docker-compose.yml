@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   mysql:
     image: mysql:8.0
@@ -14,7 +16,8 @@ services:
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
-      timeout: 20s
+      interval: 10s
+      timeout: 5s
       retries: 10
 
   minio:
@@ -30,6 +33,21 @@ services:
     volumes:
       - minio_data:/data
     restart: unless-stopped
+
+  # Авто-создание бакета bf-media в MinIO
+  minio-setup:
+    image: minio/mc:latest
+    container_name: bachata_minio_setup
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set local http://minio:9000 minioadmin minioadminpass &&
+      /usr/bin/mc mb -p local/bf-media || true &&
+      /usr/bin/mc anonymous set download local/bf-media || true &&
+      echo 'MinIO bucket bf-media ready'
+      "
+    restart: "no"
 
   clamav:
     image: clamav/clamav:stable
@@ -50,6 +68,11 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "rabbitmq-diagnostics -q ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   bachatafeedback.api:
     image: ${DOCKER_REGISTRY-}bachatafeedbackapi
@@ -62,16 +85,18 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
       minio:
         condition: service_started
-      clamav:
+      minio-setup:
         condition: service_started
-      rabbitmq:
+      clamav:
         condition: service_started
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
-      # DB 
+      # DB
       ConnectionStrings__DefaultConnection: "Server=mysql;Database=bachata_feedback;User Id=bachata_user;Password=bachata_pass;AllowUserVariables=true;UseAffectedRows=false;"
       # Storage (MinIO)
       Storage__Provider: Minio
@@ -103,6 +128,7 @@ services:
       context: .
       dockerfile: BachataFeedback.Worker/Dockerfile
     environment:
+      ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: "Server=mysql;Database=bachata_feedback;User Id=bachata_user;Password=bachata_pass;AllowUserVariables=true;UseAffectedRows=false;"
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Port: 5672
@@ -111,15 +137,32 @@ services:
       RabbitMQ__Exchange: moderation
       RabbitMQ__Queue: moderation.jobs
       RabbitMQ__PollDelayMs: 1000
-      # LM Studio (на хосте для Docker Desktop)
+      # LM Studio
+      # Для Docker Desktop/Windows/macOS:
       LLM__BaseUrl: http://host.docker.internal:1234
-      LLM__Model: qwen/qwen3-8b
-      LLM__MaxTokens: 512
+      LLM__Model: qwen/qwen3-14b
+      LLM__MaxTokens: 2048
       LLM__Temperature: 0
     depends_on:
-      - mysql
-      - rabbitmq
-    restart: "no"
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    # Чтобы host.docker.internal работал на Linux (host-gateway)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  # Опционально: Adminer для быстрого просмотра БД
+  adminer:
+    image: adminer
+    container_name: bachata_adminer
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
 
 volumes:
   mysql_data:
