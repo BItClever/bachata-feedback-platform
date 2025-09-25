@@ -34,28 +34,19 @@ public class ReviewService : IReviewService
         // Скрываем токсичный/непроверенный контент для посторонних, если не модератор
         if (!isModerator)
         {
-            var level = review.ModerationLevel;
-            if (level == ModerationLevel.Red || level == ModerationLevel.Pending)
+            var settings = await _context.UserSettings.FindAsync(review.RevieweeId);
+            bool showRatings = settings?.ShowRatingsToOthers ?? true;
+            bool showText = settings?.ShowTextReviewsToOthers ?? true;
+
+            if (!showRatings)
             {
                 dto.LeadRatings = null;
                 dto.FollowRatings = null;
+            }
+            if (!showText)
+            {
                 dto.TextReview = null;
             }
-        }
-
-        // Приватность по настройкам
-        var settings = await _context.UserSettings.FindAsync(review.RevieweeId);
-        bool showRatings = settings?.ShowRatingsToOthers ?? true;
-        bool showText = settings?.ShowTextReviewsToOthers ?? true;
-
-        if (!showRatings)
-        {
-            dto.LeadRatings = null;
-            dto.FollowRatings = null;
-        }
-        if (!showText)
-        {
-            dto.TextReview = null;
         }
 
         return dto;

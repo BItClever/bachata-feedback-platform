@@ -240,6 +240,7 @@ public class ModerationWorker : BackgroundService
         var verdict = await llm.ClassifyAsync(text, ct);
 
         ApplyVerdict(r, verdict);
+        PostprocessReasons(r, text, verdict.Level);
         await db.SaveChangesAsync(ct);
     }
 
@@ -252,6 +253,7 @@ public class ModerationWorker : BackgroundService
         var verdict = await llm.ClassifyAsync(text, ct);
 
         ApplyVerdict(r, verdict);
+        PostprocessReasons(r, text, verdict.Level);
         await db.SaveChangesAsync(ct);
     }
 
@@ -295,6 +297,91 @@ public class ModerationWorker : BackgroundService
         r.ModerationReasonRu = string.IsNullOrWhiteSpace(v.ReasonRu) ? null : v.ReasonRu;
         r.ModerationReasonEn = string.IsNullOrWhiteSpace(v.ReasonEn) ? null : v.ReasonEn;
     }
+
+    private static string TrimTo(string? s, int max)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return string.Empty;
+        var t = s.Trim().Trim('"', '“', '”', '«', '»').Replace("\r", " ").Replace("\n", " ");
+        return t.Length <= max ? t : t.Substring(0, max).Trim();
+    }
+
+    private static bool LooksLikeCopy(string reason, string source)
+    {
+        if (string.IsNullOrWhiteSpace(reason) || string.IsNullOrWhiteSpace(source)) return false;
+        var r = reason.ToLowerInvariant();
+        var s = source.ToLowerInvariant();
+        if (r.Length >= Math.Min(80, s.Length)) // подозрительно длинно
+        {
+            // если reason содержит большую начальную часть исходного текста
+            var probe = s.Substring(0, Math.Min(60, s.Length));
+            if (r.Contains(probe)) return true;
+        }
+        return false;
+    }
+
+    private static void PostprocessReasons(Review r, string original, string level)
+    {
+        var ru = TrimTo(r.ModerationReasonRu, 200);
+        var en = TrimTo(r.ModerationReasonEn, 200);
+        var baseR = TrimTo(r.ModerationReason, 200);
+
+        string fallbackRu, fallbackEn;
+        switch (level)
+        {
+            case "Red":
+                fallbackRu = "Оскорбления/травля/агрессия.";
+                fallbackEn = "Insults/harassment/aggression.";
+                break;
+            case "Green":
+                fallbackRu = "Корректная формулировка.";
+                fallbackEn = "Polite/constructive.";
+                break;
+            default: // Yellow
+                fallbackRu = "Пограничная формулировка (сарказм/некорректный тон).";
+                fallbackEn = "Borderline wording (sarcasm/impolite tone).";
+                break;
+        }
+
+        if (string.IsNullOrWhiteSpace(ru) || LooksLikeCopy(ru, original)) ru = fallbackRu;
+        if (string.IsNullOrWhiteSpace(en) || LooksLikeCopy(en, original)) en = fallbackEn;
+        if (string.IsNullOrWhiteSpace(baseR) || LooksLikeCopy(baseR, original)) baseR = ru; // базовую причину делаем локальной по умолчанию
+
+        r.ModerationReason = TrimTo(baseR, 200);
+        r.ModerationReasonRu = TrimTo(ru, 200);
+        r.ModerationReasonEn = TrimTo(en, 200);
+    }
+
+    private static void PostprocessReasons(EventReview r, string original, string level)
+    {
+        var ru = TrimTo(r.ModerationReasonRu, 200);
+        var en = TrimTo(r.ModerationReasonEn, 200);
+        var baseR = TrimTo(r.ModerationReason, 200);
+
+        string fallbackRu, fallbackEn;
+        switch (level)
+        {
+            case "Red":
+                fallbackRu = "Оскорбления/травля/агрессия.";
+                fallbackEn = "Insults/harassment/aggression.";
+                break;
+            case "Green":
+                fallbackRu = "Корректная формулировка.";
+                fallbackEn = "Polite/constructive.";
+                break;
+            default:
+                fallbackRu = "Пограничная формулировка (сарказм/некорректный тон).";
+                fallbackEn = "Borderline wording (sarcasm/impolite tone).";
+                break;
+        }
+
+        if (string.IsNullOrWhiteSpace(ru) || LooksLikeCopy(ru, original)) ru = fallbackRu;
+        if (string.IsNullOrWhiteSpace(en) || LooksLikeCopy(en, original)) en = fallbackEn;
+        if (string.IsNullOrWhiteSpace(baseR) || LooksLikeCopy(baseR, original)) baseR = ru;
+
+        r.ModerationReason = TrimTo(baseR, 200);
+        r.ModerationReasonRu = TrimTo(ru, 200);
+        r.ModerationReasonEn = TrimTo(en, 200);
+    }
 }
 
 public record ModerationVerdict(string Level, string Reason, string[] Categories, string? ReasonRu, string? ReasonEn);
@@ -325,18 +412,23 @@ public class LMStudioClient : ILLMClient
     public async Task<ModerationVerdict> ClassifyAsync(string input, CancellationToken ct)
     {
         var system = @"You are a strict but fair moderator for social dance (bachata) feedback.
-Return ONLY valid JSON matching this schema:
-{""level"":""Green|Yellow|Red"",
- ""reason"":""string (<=200 chars, language of the input)"",
- ""reason_ru"":""string (<=200 chars, Russian) or empty"",
- ""reason_en"":""string (<=200 chars, English) or empty"",
- ""categories"":[""optional-tags""]}.
-Rules:
-- Green: polite/constructive, even if negative.
-- Yellow: borderline rude, sarcasm, mild profanity, hygiene remarks stated factually; still show to users.
-- Red: direct insults, slurs, harassment, threats, sexual harassment.
-Context: Feedback may mention technique, musicality, timing, connection, hygiene. Allow factual hygiene notes unless insulting.
-Output bilingual reasons (reason_ru and reason_en). If input is Russian, reason should be Russian, fill reason_ru=reason and add English to reason_en. If input is English, reason should be English, fill reason_en=reason and add Russian to reason_ru.";
+            Return ONLY valid JSON matching this schema:
+            {
+              ""level"": ""Green|Yellow|Red"",
+              ""reason"": ""short rationale in <=200 chars (do NOT quote or restate the user text), language of the input"",
+              ""reason_ru"": ""short rationale in Russian (<=200 chars), do NOT copy user text"",
+              ""reason_en"": ""short rationale in English (<=200 chars), do NOT copy user text"",
+              ""categories"": [""optional-tags""]
+            }
+            Rules:
+            - Green: polite/constructive, even if negative.
+            - Yellow: borderline rude, sarcasm, mild profanity, impolite tone; still show to users.
+            - Red: direct insults, slurs, harassment, threats, sexual harassment.
+            Constraints:
+            - Do NOT repeat or quote the user message. Provide a concise moderator rationale.
+            - Keep reasons <=200 chars each, no newlines, no surrounding quotes.
+            - Always fill both reason_ru and reason_en with short rationales (bilingual).
+            Context: Feedback may mention technique, musicality, timing, connection, hygiene. Allow factual hygiene notes unless insulting.";
         var user = $"Analyze this feedback and respond with JSON only:\n\"\"\"{input}\"\"\"";
 
         var payload = new

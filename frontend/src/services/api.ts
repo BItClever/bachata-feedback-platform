@@ -283,10 +283,16 @@ export const moderationAdminAPI = {
   getJobs: () => api.get('/admin/moderation/jobs'),
   requeue: (targetType: 'Review' | 'EventReview', targetId: number) =>
     api.post('/admin/moderation/requeue', { targetType, targetId }),
-  setReviewLevel: (id: number, level: 'Green' | 'Yellow' | 'Red', reason?: string) =>
-    api.put(`/admin/moderation/reviews/${id}`, { level, reason }),
-  setEventReviewLevel: (id: number, level: 'Green' | 'Yellow' | 'Red', reason?: string) =>
-    api.put(`/admin/moderation/eventreviews/${id}`, { level, reason }),
+  setReviewLevel: (id: number, level: 'Green' | 'Yellow' | 'Red', reason?: string, reasonRu?: string, reasonEn?: string) =>
+    api.put(`/admin/moderation/reviews/${id}`, { level, reason, reasonRu, reasonEn }),
+  setEventReviewLevel: (id: number, level: 'Green' | 'Yellow' | 'Red', reason?: string, reasonRu?: string, reasonEn?: string) =>
+    api.put(`/admin/moderation/eventreviews/${id}`, { level, reason, reasonRu, reasonEn }),
+  listUserReviews: (params: { status?: string; search?: string; skip?: number; take?: number }) =>
+    api.get('/admin/moderation/reviews/list', { params }),
+  listEventReviews: (params: { status?: string; search?: string; skip?: number; take?: number }) =>
+    api.get('/admin/moderation/eventreviews/list', { params }),
+  getReportsByTarget: (targetType: 'Review' | 'EventReview' | 'Photo', targetId: number, status?: string) =>
+    api.get('/admin/moderation/reports/by-target', { params: { targetType, targetId, status } }),
 };
 
 export const statsAPI = {

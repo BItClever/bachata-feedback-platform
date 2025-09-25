@@ -54,8 +54,8 @@ public class ReviewsController : ControllerBase
 
         var reviews = await _reviewService.GetUserReviewsAsync(userId, requestorId, isModerator);
 
-        // Приватность по настройкам (как было)
-        if (!isOwner && revieweeSettings != null)
+        // Приватность по настройкам
+        if (!isOwner && !isModerator && revieweeSettings != null)
         {
             if (!revieweeSettings.ShowRatingsToOthers)
             {
