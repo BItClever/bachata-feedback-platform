@@ -39,7 +39,7 @@ useEffect(() => {
 
     if (token) {
       try {
-        const response = await usersAPI.getCurrentUser();
+        const response = await authAPI.getCurrentUser()
         setUser(response.data);
         localStorage.setItem('user', JSON.stringify(response.data));
       } catch (error: any) {
