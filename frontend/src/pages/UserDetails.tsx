@@ -5,16 +5,12 @@ import ReviewModal from '../components/ReviewModal';
 import { useAuth } from '../contexts/AuthContext';
 import { reportsAPI } from '../services/api';
 import { ReasonBadge } from '../components/ReasonBadge';
-
-const badge = (level?: string) =>
-    level === 'Red' ? 'bg-red-100 text-red-800' :
-        level === 'Yellow' ? 'bg-yellow-100 text-yellow-800' :
-            level === 'Green' ? 'bg-green-100 text-green-800' :
-                'bg-gray-200 text-gray-700';
+import { useTranslation } from 'react-i18next';
 
 const UserDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const { user: me } = useAuth();
+    const { t } = useTranslation();
     const [user, setUser] = useState<User | null>(null);
     const [reviews, setReviews] = useState<Review[]>([]);
     const [photos, setPhotos] = useState<Array<{ id: number; isMain: boolean; smallUrl: string; mediumUrl: string; largeUrl: string }>>([]);
@@ -35,7 +31,7 @@ const UserDetails: React.FC = () => {
             setReviews(r.data);
             setPhotos(ph.data);
         } catch (e: any) {
-            setError(e.response?.data?.message || 'Failed to load user or reviews');
+            setError(e.response?.data?.message || t('errors.failedLoadReviews') || 'Failed to load user or reviews');
         } finally {
             setLoading(false);
         }
@@ -46,18 +42,18 @@ const UserDetails: React.FC = () => {
     const report = async (reviewId: number) => {
         try {
             await reportsAPI.create({ targetType: 'Review', targetId: reviewId, reason: 'Inappropriate', description: '' });
-            alert('Report submitted');
+            alert(t('common.ok') || 'Report submitted');
         } catch (e: any) {
-            alert(e.response?.data?.message || 'Failed to report');
+            alert(e.response?.data?.message || t('errors.failedReport') || 'Failed to report');
         }
     };
 
     const reportUserPhoto = async (photoId: number) => {
         try {
             await reportsAPI.create({ targetType: 'UserPhoto', targetId: photoId, reason: 'Inappropriate', description: '' });
-            alert('Report submitted');
+            alert(t('common.ok') || 'Report submitted');
         } catch (e: any) {
-            alert(e.response?.data?.message || 'Failed to report');
+            alert(e.response?.data?.message || t('errors.failedReport') || 'Failed to report');
         }
     };
 
@@ -72,16 +68,11 @@ const UserDetails: React.FC = () => {
         return parts.length ? (parts.reduce((a, b) => a + b, 0) / parts.length) : NaN;
     };
 
-    const mainFromPhotos = photos.find(p => p.isMain);
-
-    // Исключать Red из отображаемых средних на карточке — на уровне бекэнда учли в UsersController
-    // На уровне клиента можно фильтровать r.moderationLevel==='Red' при расчётах, если бы считали здесь.
-
     if (loading) {
         return <div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div></div>;
     }
     if (error || !user) {
-        return <div className="max-w-4xl mx-auto p-6"><div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">{error || 'Not found'}</div></div>;
+        return <div className="max-w-4xl mx-auto p-6"><div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">{error || t('userDetails.notFound') || 'Not found'}</div></div>;
     }
 
     return (
@@ -107,30 +98,30 @@ const UserDetails: React.FC = () => {
                         <h1 className="text-2xl font-bold">{user.firstName} {user.lastName}</h1>
                         {(typeof user.reviewsReceivedCount !== 'undefined') && (
                             <div className="text-gray-600 text-sm">
-                                {user.reviewsReceivedCount} reviews
-                                {typeof user.avgRating === 'number' && <> • avg {user.avgRating.toFixed(1)}/5</>}
+                                {user.reviewsReceivedCount} {t('userCard.reviews')}
+                                {typeof user.avgRating === 'number' && <> • {t('userCard.avg', { value: user.avgRating.toFixed(1) })}</>}
                                 {typeof user.avgRatingUnique === 'number' && <> • by authors {user.avgRatingUnique.toFixed(1)}/5</>}
                             </div>
                         )}
-                        {user.dancerRole && <div className="text-gray-600 text-sm mt-1">Role: {user.dancerRole}</div>}
-                        {user.selfAssessedLevel && <div className="text-gray-600 text-sm">Level: {user.selfAssessedLevel}</div>}
+                        {user.dancerRole && <div className="text-gray-600 text-sm mt-1">{t('userDetails.role')} {user.dancerRole}</div>}
+                        {user.selfAssessedLevel && <div className="text-gray-600 text-sm">{t('userDetails.level')} {user.selfAssessedLevel}</div>}
                     </div>
                     <div className="ml-auto flex gap-2">
-                        <Link to="/users" className="btn-secondary">Back</Link>
+                        <Link to="/users" className="btn-secondary">{t('userDetails.back')}</Link>
                         {me && me.id !== user.id && (
-                            <button className="btn-primary" onClick={() => setShowReviewModal(true)}>Leave Review</button>
+                            <button className="btn-primary" onClick={() => setShowReviewModal(true)}>{t('userDetails.leaveReview')}</button>
                         )}
                     </div>
                 </div>
                 {user.bio && <p className="text-gray-700 mt-4">{user.bio}</p>}
-                {user.danceStyles && <p className="text-gray-700 mt-1"><span className="font-semibold">Styles:</span> {user.danceStyles}</p>}
-                {user.startDancingDate && <p className="text-gray-700 mt-1"><span className="font-semibold">Dancing since:</span> {new Date(user.startDancingDate).getFullYear()}</p>}
+                {user.danceStyles && <p className="text-gray-700 mt-1"><span className="font-semibold">{t('userDetails.styles')}</span> {user.danceStyles}</p>}
+                {user.startDancingDate && <p className="text-gray-700 mt-1"><span className="font-semibold">{t('userDetails.dancingSince')}</span> {new Date(user.startDancingDate).getFullYear()}</p>}
             </div>
 
             <div className="bg-white rounded-lg shadow p-6 mb-6">
-                <h2 className="text-lg font-semibold mb-3">Photos</h2>
+                <h2 className="text-lg font-semibold mb-3">{t('userDetails.photos')}</h2>
                 {photos.length === 0 ? (
-                    <div className="text-gray-500">No photos.</div>
+                    <div className="text-gray-500">{t('userDetails.noPhotos')}</div>
                 ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                         {photos.map(p => (
@@ -140,7 +131,7 @@ const UserDetails: React.FC = () => {
                                 </div>
                                 {me && (
                                     <div className="p-2 text-right">
-                                        <button className="text-sm text-red-600 hover:underline" onClick={() => reportUserPhoto(p.id)}>Report</button>
+                                        <button className="text-sm text-red-600 hover:underline" onClick={() => reportUserPhoto(p.id)}>{t('userDetails.report')}</button>
                                     </div>
                                 )}
                             </div>
@@ -151,17 +142,17 @@ const UserDetails: React.FC = () => {
 
             <div className="bg-white rounded-lg shadow">
                 <div className="px-6 py-4 border-b border-gray-200">
-                    <h2 className="text-lg font-semibold">All Reviews</h2>
+                    <h2 className="text-lg font-semibold">{t('userDetails.allReviews')}</h2>
                 </div>
                 {reviews.length === 0 ? (
-                    <div className="p-6 text-gray-500">No reviews yet.</div>
+                    <div className="p-6 text-gray-500">{t('userDetails.noReviewsYet')}</div>
                 ) : (
                     <div className="divide-y">
                         {reviews.map(r => (
                             <div key={r.id} className="px-6 py-4">
                                 <div className="flex justify-between">
                                     <div className="text-sm text-gray-800">
-                                        {r.reviewerName || 'Anonymous'}
+                                        {r.reviewerName || t('common.anonymous')}
                                         {r.moderationLevel && (
                                             <ReasonBadge
                                                 level={r.moderationLevel}
@@ -178,7 +169,7 @@ const UserDetails: React.FC = () => {
                                 {r.textReview ? (
                                     <p className="text-gray-700 mt-1">{r.textReview}</p>
                                 ) : (
-                                    <p className="text-gray-400 mt-1">Hidden by privacy settings</p>
+                                    <p className="text-gray-400 mt-1">{t('userDetails.hiddenByPrivacy')}</p>
                                 )}
                                 <div className="mt-2 flex items-center justify-between">
                                     <div className="text-sm text-gray-600">
@@ -187,7 +178,7 @@ const UserDetails: React.FC = () => {
                                             return isNaN(v) ? null : <span className="font-semibold">{v.toFixed(1)}/5</span>;
                                         })()}
                                     </div>
-                                    <button className="text-xs text-red-700 hover:underline" onClick={() => report(r.id)}>Report</button>
+                                    <button className="text-xs text-red-700 hover:underline" onClick={() => report(r.id)}>{t('userDetails.report')}</button>
                                 </div>
                             </div>
                         ))}

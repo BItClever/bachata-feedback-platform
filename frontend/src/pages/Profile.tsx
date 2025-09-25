@@ -3,9 +3,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { usersAPI, userSettingsAPI, reviewsAPI, Review, authAPI } from '../services/api';
 import { userPhotosAPI } from '../services/api';
 import AvatarFocusModal from '../components/AvatarFocusModal';
+import { useTranslation } from 'react-i18next';
 
 const Profile: React.FC = () => {
   const { user, updateUserData } = useAuth();
+  const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
@@ -30,7 +32,6 @@ const Profile: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [focusOpen, setFocusOpen] = useState(false);
 
-  // Обновляем formData и загружаем отзывы/фото когда user изменяется
   useEffect(() => {
     if (!user) return;
 
@@ -39,7 +40,6 @@ const Profile: React.FC = () => {
         const res = await reviewsAPI.getUserReviews(user.id);
         setMyReviews(res.data);
 
-        // агрегирование рейтингов — как было
         const leadAcc: Record<string, { sum: number; count: number }> = {};
         const followAcc: Record<string, { sum: number; count: number }> = {};
 
@@ -72,7 +72,7 @@ const Profile: React.FC = () => {
 
         setRatingsAgg({ lead: leadOut, follow: followOut });
       } catch {
-        // отзывы упали — просто не показываем статистику, но не мешаем фото
+        // ignore for MVP
       }
     };
 
@@ -81,11 +81,10 @@ const Profile: React.FC = () => {
         const ph = await userPhotosAPI.getMine();
         setMyPhotos(ph.data);
       } catch {
-        // если вдруг упали и фото — тоже тихо игнорируем в MVP
+        // ignore
       }
     };
 
-    // параллельный старт; даже если отзывы упадут, фото загрузятся
     Promise.allSettled([loadReviews(), loadPhotos()]);
   }, [user]);
 
@@ -111,7 +110,6 @@ const Profile: React.FC = () => {
 
       await usersAPI.updateUser(user.id.toString(), updateData);
 
-      // Сразу забираем актуальный профиль с сервера
       const me = await authAPI.getCurrentUser();
       updateUserData(me.data);
 
@@ -127,9 +125,9 @@ const Profile: React.FC = () => {
       });
 
       setIsEditing(false);
-      setSuccess('Profile updated successfully!');
+      setSuccess(t('profile.updated') || 'Profile updated successfully!');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update profile');
+      setError(err.response?.data?.message || t('errors.failedUpdateProfile') || 'Failed to update profile');
     } finally {
       setIsLoading(false);
     }
@@ -167,15 +165,14 @@ const Profile: React.FC = () => {
     setSavingSettings(true);
     try {
       await userSettingsAPI.updateMine(settings);
-      setSuccess('Settings updated!');
+      setSuccess(t('profile.saved') || 'Settings updated!');
     } catch (e: any) {
-      setError(e.response?.data?.message || 'Failed to update settings');
+      setError(e.response?.data?.message || t('errors.failedSaveSettings') || 'Failed to update settings');
     } finally {
       setSavingSettings(false);
     }
   };
 
-  // Photos: actions
   const refreshPhotos = async () => {
     const ph = await userPhotosAPI.getMine();
     setMyPhotos(ph.data);
@@ -190,9 +187,9 @@ const Profile: React.FC = () => {
     try {
       await userPhotosAPI.uploadMyPhoto(file);
       await refreshPhotos();
-      setSuccess('Photo uploaded');
+      setSuccess(t('common.uploaded') || 'Photo uploaded');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to upload photo');
+      setError(err.response?.data?.message || t('errors.failedUploadPhoto') || 'Failed to upload photo');
     } finally {
       setUploading(false);
       e.target.value = '';
@@ -203,11 +200,10 @@ const Profile: React.FC = () => {
     try {
       await userPhotosAPI.setMain(photoId);
       await refreshPhotos();
-      // обновим профиль (MainPhotoPath)
       const me = await authAPI.getCurrentUser();
       updateUserData(me.data);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to set main photo');
+      setError(err.response?.data?.message || t('errors.failedSetMainPhoto') || 'Failed to set main photo');
     }
   };
 
@@ -215,9 +211,9 @@ const Profile: React.FC = () => {
     try {
       await userPhotosAPI.delete(photoId);
       await refreshPhotos();
-      setSuccess('Photo deleted');
+      setSuccess(t('common.deleted') || 'Photo deleted');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to delete photo');
+      setError(err.response?.data?.message || t('errors.failedDeletePhoto') || 'Failed to delete photo');
     }
   };
 
@@ -227,13 +223,10 @@ const Profile: React.FC = () => {
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="bg-white rounded-lg shadow-lg p-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('profile.title')}</h1>
           {!isEditing && (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="btn-primary"
-            >
-              Edit Profile
+            <button onClick={() => setIsEditing(true)} className="btn-primary">
+              {t('profile.editProfile')}
             </button>
           )}
         </div>
@@ -249,7 +242,6 @@ const Profile: React.FC = () => {
           </div>
         )}
 
-        {/* Header with avatar */}
         <div className="flex items-center space-x-6 mb-6">
           <div className="w-24 h-24 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden">
             {mainPhoto ? (
@@ -278,12 +270,12 @@ const Profile: React.FC = () => {
             <div className="mt-3 flex items-center gap-2 flex-wrap">
               <label className="btn-secondary relative cursor-pointer">
                 <input type="file" accept="image/jpeg,image/png,image/webp" onChange={onUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
-                {uploading ? 'Uploading...' : 'Upload Avatar/Photo'}
+                {uploading ? t('common.uploading') : t('profile.avatarUpload')}
               </label>
 
               {mainPhoto && (
                 <button className="btn-secondary" onClick={() => setFocusOpen(true)}>
-                  Edit avatar focus
+                  {t('profile.editAvatarFocus')}
                 </button>
               )}
             </div>
@@ -350,7 +342,7 @@ const Profile: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Self-Assessed Level
+                  {t('profile.level')}
                 </label>
                 <select
                   name="selfAssessedLevel"
@@ -358,7 +350,7 @@ const Profile: React.FC = () => {
                   value={formData.selfAssessedLevel}
                   onChange={handleChange}
                 >
-                  <option value="">Select your level</option>
+                  <option value="">{t('onboarding.step1.selectLevel')}</option>
                   {levelOptions.map(level => (
                     <option key={level} value={level}>{level}</option>
                   ))}
@@ -366,7 +358,7 @@ const Profile: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Dancer Role
+                  {t('profile.role')}
                 </label>
                 <select
                   name="dancerRole"
@@ -374,7 +366,7 @@ const Profile: React.FC = () => {
                   value={formData.dancerRole}
                   onChange={handleChange}
                 >
-                  <option value="">Select role</option>
+                  <option value="">{t('onboarding.step1.selectRole')}</option>
                   <option value="Lead">Lead</option>
                   <option value="Follow">Follow</option>
                   <option value="Both">Both</option>
@@ -396,7 +388,7 @@ const Profile: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Dance Styles
+                {t('profile.danceStyles')}
               </label>
               <input
                 type="text"
@@ -414,14 +406,14 @@ const Profile: React.FC = () => {
                 onClick={() => setIsEditing(false)}
                 className="btn-secondary flex-1"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={isLoading}
                 className="btn-primary flex-1"
               >
-                {isLoading ? 'Saving...' : 'Save Changes'}
+                {isLoading ? t('common.saving') : t('common.save')}
               </button>
             </div>
           </form>
@@ -429,7 +421,7 @@ const Profile: React.FC = () => {
           <div className="space-y-6">
             {user?.bio && (
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">About</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">{t('profile.about')}</h3>
                 <p className="text-gray-700">{user.bio}</p>
               </div>
             )}
@@ -437,19 +429,19 @@ const Profile: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {user?.selfAssessedLevel && (
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Level</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{t('profile.level')}</h3>
                   <p className="text-gray-700">{user.selfAssessedLevel}</p>
                 </div>
               )}
               {user?.dancerRole && (
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Role</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{t('profile.role')}</h3>
                   <p className="text-gray-700">{user.dancerRole}</p>
                 </div>
               )}
               {user?.startDancingDate && (
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Dancing Since</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{t('profile.dancingSince')}</h3>
                   <p className="text-gray-700">
                     {new Date(user.startDancingDate).toLocaleDateString()}
                   </p>
@@ -459,22 +451,22 @@ const Profile: React.FC = () => {
 
             {user?.danceStyles && (
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Dance Styles</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">{t('profile.danceStyles')}</h3>
                 <p className="text-gray-700">{user.danceStyles}</p>
               </div>
             )}
 
             {(Object.keys(ratingsAgg.lead).length > 0 || Object.keys(ratingsAgg.follow).length > 0) && (
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">My Ratings</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">{t('profile.myRatings')}</h3>
 
                 {Object.keys(ratingsAgg.lead).length > 0 && (
                   <div className="mb-4">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Lead</h4>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">{t('profile.lead')}</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {Object.entries(ratingsAgg.lead).map(([k, v]) => (
                         <div key={k} className="flex justify-between bg-gray-50 rounded px-3 py-2">
-                          <span className="capitalize text-gray-700">{k}</span>
+                          <span className="capitalize text-gray-700">{t(`aspects.${k}`) || k}</span>
                           <span className="font-semibold text-gray-900">{v.toFixed(1)}/5</span>
                         </div>
                       ))}
@@ -484,11 +476,11 @@ const Profile: React.FC = () => {
 
                 {Object.keys(ratingsAgg.follow).length > 0 && (
                   <div className="mb-2">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Follow</h4>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">{t('profile.follow')}</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {Object.entries(ratingsAgg.follow).map(([k, v]) => (
                         <div key={k} className="flex justify-between bg-gray-50 rounded px-3 py-2">
-                          <span className="capitalize text-gray-700">{k}</span>
+                          <span className="capitalize text-gray-700">{t(`aspects.${k}`) || k}</span>
                           <span className="font-semibold text-gray-900">{v.toFixed(1)}/5</span>
                         </div>
                       ))}
@@ -498,11 +490,10 @@ const Profile: React.FC = () => {
               </div>
             )}
 
-            {/* Мои фото */}
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">My Photos</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">{t('profile.myPhotos')}</h3>
               {myPhotos.length === 0 ? (
-                <p className="text-gray-500">No photos yet. Upload your first photo!</p>
+                <p className="text-gray-500">{t('profile.noPhotos')}</p>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {myPhotos.map(p => (
@@ -512,11 +503,11 @@ const Profile: React.FC = () => {
                       </div>
                       <div className="p-2 flex items-center justify-between text-sm">
                         {p.isMain ? (
-                          <span className="text-green-700 font-semibold">Main</span>
+                          <span className="text-green-700 font-semibold">{t('profile.main')}</span>
                         ) : (
-                          <button className="text-primary-600 hover:underline" onClick={() => setMainPhoto(p.id)}>Set main</button>
+                          <button className="text-primary-600 hover:underline" onClick={() => setMainPhoto(p.id)}>{t('profile.setMain')}</button>
                         )}
-                        <button className="text-red-600 hover:underline" onClick={() => deletePhoto(p.id)}>Delete</button>
+                        <button className="text-red-600 hover:underline" onClick={() => deletePhoto(p.id)}>{t('profile.delete')}</button>
                       </div>
                     </div>
                   ))}
@@ -528,14 +519,14 @@ const Profile: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow-lg p-8 mt-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Privacy Settings</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('profile.privacyTitle')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[
-            { key: 'allowReviews', label: 'Allow reviews' },
-            { key: 'showRatingsToOthers', label: 'Show numeric ratings to others' },
-            { key: 'showTextReviewsToOthers', label: 'Show text reviews to others' },
-            { key: 'allowAnonymousReviews', label: 'Allow anonymous reviews' },
-            { key: 'showPhotosToGuests', label: 'Show photos to guests' },
+            { key: 'allowReviews', label: t('profile.privacy.allowReviews') },
+            { key: 'showRatingsToOthers', label: t('profile.privacy.showRatingsToOthers') },
+            { key: 'showTextReviewsToOthers', label: t('profile.privacy.showTextReviewsToOthers') },
+            { key: 'allowAnonymousReviews', label: t('profile.privacy.allowAnonymousReviews') },
+            { key: 'showPhotosToGuests', label: t('profile.privacy.showPhotosToGuests') },
           ].map(item => (
             <label key={item.key} className="flex items-center space-x-2">
               <input
@@ -550,7 +541,7 @@ const Profile: React.FC = () => {
 
         <div className="mt-4">
           <button onClick={saveSettings} disabled={savingSettings} className="btn-primary">
-            {savingSettings ? 'Saving...' : 'Save Settings'}
+            {savingSettings ? t('profile.saving') : t('profile.saveSettings')}
           </button>
         </div>
       </div>

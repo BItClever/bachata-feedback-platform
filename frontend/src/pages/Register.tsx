@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -18,6 +19,7 @@ const Register: React.FC = () => {
 
   const { register } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -31,7 +33,7 @@ const Register: React.FC = () => {
     setError('');
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('errors.passwordsDontMatch') || 'Passwords do not match');
       return;
     }
 
@@ -47,7 +49,7 @@ const Register: React.FC = () => {
       });
       navigate('/onboarding');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Registration failed');
+      setError(err.response?.data?.message || t('errors.registrationFailed') || 'Registration failed');
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +60,7 @@ const Register: React.FC = () => {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
+            {t('auth.register.title')}
           </h2>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -66,7 +68,7 @@ const Register: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                  First Name
+                  {t('auth.register.firstName')}
                 </label>
                 <input
                   id="firstName"
@@ -80,7 +82,7 @@ const Register: React.FC = () => {
               </div>
               <div>
                 <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                  Last Name
+                  {t('auth.register.lastName')}
                 </label>
                 <input
                   id="lastName"
@@ -96,7 +98,7 @@ const Register: React.FC = () => {
 
             <div>
               <label htmlFor="nickname" className="block text-sm font-medium text-gray-700">
-                Nickname (optional)
+                {t('auth.register.nickname')}
               </label>
               <input
                 id="nickname"
@@ -110,7 +112,7 @@ const Register: React.FC = () => {
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
+                {t('auth.register.email')}
               </label>
               <input
                 id="email"
@@ -125,7 +127,7 @@ const Register: React.FC = () => {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
+                {t('auth.register.password')}
               </label>
               <div className="relative">
                 <input
@@ -141,7 +143,7 @@ const Register: React.FC = () => {
                   type="button"
                   onClick={() => setShowPassword(v => !v)}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? t('common.hide') || 'Hide' : t('common.view') || 'Show'}
                 >
                   {showPassword ? '🙈' : '👁️'}
                 </button>
@@ -150,7 +152,7 @@ const Register: React.FC = () => {
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                Confirm Password
+                {t('auth.register.confirmPassword')}
               </label>
               <div className="relative">
                 <input
@@ -166,7 +168,7 @@ const Register: React.FC = () => {
                   type="button"
                   onClick={() => setShowConfirm(v => !v)}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500"
-                  aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                  aria-label={showConfirm ? t('common.hide') || 'Hide' : t('common.view') || 'Show'}
                 >
                   {showConfirm ? '🙈' : '👁️'}
                 </button>
@@ -186,13 +188,13 @@ const Register: React.FC = () => {
               disabled={isLoading}
               className="btn-primary w-full"
             >
-              {isLoading ? 'Creating account...' : 'Create account'}
+              {isLoading ? t('auth.register.creating') : t('auth.register.create')}
             </button>
           </div>
 
           <div className="text-center">
             <Link to="/login" className="text-primary-600 hover:text-primary-500">
-              Already have an account? Sign in
+              {t('auth.register.haveAccount')}
             </Link>
           </div>
         </form>

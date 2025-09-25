@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import '../i18n';
+import { useTranslation } from 'react-i18next';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -8,6 +10,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
@@ -23,20 +26,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <>
       {user ? (
         <>
-          <Link to="/dashboard" className="nav-link">Dashboard</Link>
-          <Link to="/users" className="nav-link">Users</Link>
-          <Link to="/events" className="nav-link">Events</Link>
-          {isAdmin && <Link to="/admin/roles" className="nav-link">Admin</Link>}
-          {isMod && <Link to="/admin/moderation" className="nav-link">Moderation</Link>}
-          <Link to="/profile" className="nav-link">{user.firstName} {user.lastName}</Link>
-          <Link to="/faq" className="nav-link">FAQ</Link>
-          <button onClick={handleLogout} className="btn-primary px-4 py-2">Logout</button>
+          <Link to="/dashboard" className="nav-link">{t('nav.dashboard')}</Link>
+          <Link to="/users" className="nav-link">{t('nav.users')}</Link>
+          <Link to="/events" className="nav-link">{t('nav.events')}</Link>
+          {isAdmin && <Link to="/admin/roles" className="nav-link">{t('nav.admin')}</Link>}
+          {isMod && <Link to="/admin/moderation" className="nav-link">{t('nav.moderation')}</Link>}
+          <Link to="/profile" className="nav-link">{t('nav.profile')}</Link>
+          <Link to="/faq" className="nav-link">{t('nav.faq')}</Link>
+          <button onClick={handleLogout} className="btn-primary px-4 py-2">{t('nav.logout')}</button>
         </>
       ) : (
         <>
-          <Link to="/login" className="nav-link">Login</Link>
-          <Link to="/register" className="btn-primary px-4 py-2">Register</Link>
-          <Link to="/faq" className="nav-link">FAQ</Link>
+          <Link to="/login" className="nav-link">{t('nav.login')}</Link>
+          <Link to="/register" className="btn-primary px-4 py-2">{t('nav.register')}</Link>
+          <Link to="/faq" className="nav-link">{t('nav.faq')}</Link>
         </>
       )}
     </>
@@ -50,7 +53,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <div className="flex items-center">
               <Link to="/" className="flex-shrink-0">
                 <h1 className="text-xl font-bold text-primary-600">
-                  Bachata Feedback
+                  {t('app.title')}
                 </h1>
               </Link>
             </div>
@@ -87,7 +90,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       <footer className="bg-gray-800 text-white">
         <div className="max-w-7xl mx-auto py-4 px-4 text-center">
-          <p>&copy; 2025 Bachata Feedback Platform. All rights reserved.</p>
+          <p>{t('app.footer')}</p>
         </div>
       </footer>
 

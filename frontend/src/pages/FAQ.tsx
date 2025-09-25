@@ -1,56 +1,42 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 const FAQ: React.FC = () => {
+  const { t } = useTranslation();
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">FAQ</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-6">{t('faq.title')}</h1>
 
       <div className="space-y-6 text-gray-800">
         <div>
-          <h2 className="text-xl font-semibold mb-2">Что это за платформа?</h2>
-          <p>
-            Это площадка для танцоров бачаты, где можно оставлять и получать
-            конструктивную обратную связь, а также оценивать события.
-          </p>
+          <h2 className="text-xl font-semibold mb-2">{t('faq.whatTitle')}</h2>
+          <p>{t('faq.whatText')}</p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold mb-2">Как работает модерация?</h2>
-          <p>
-            Текстовые отзывы проходят автоматическую модерацию (LLM). Система присваивает уровень:
-            Green/Yellow/Red и оставляет комментарий. Комментарии стараемся показывать на языке отзыва
-            (будет двуязычный режим). Красный и необработанный контент скрыт для посторонних.
-          </p>
+          <h2 className="text-xl font-semibold mb-2">{t('faq.moderationTitle')}</h2>
+          <p>{t('faq.moderationText')}</p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold mb-2">Анонимность и приватность</h2>
-          <p>
-            Можно оставлять анонимные отзывы (если пользователь разрешил). Видимость рейтингов и текста
-            регулируется в настройках приватности профиля.
-          </p>
+          <h2 className="text-xl font-semibold mb-2">{t('faq.privacyTitle')}</h2>
+          <p>{t('faq.privacyText')}</p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold mb-2">Зачем оставлять отзывы?</h2>
-          <p>
-            Обратная связь помогает улучшать танец, взаимодействие в паре и атмосферу на событиях.
-            Рекомендуем кратко и конструктивно описывать сильные стороны и области роста.
-          </p>
+          <h2 className="text-xl font-semibold mb-2">{t('faq.whyReviewsTitle')}</h2>
+          <p>{t('faq.whyReviewsText')}</p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold mb-2">Как пожаловаться на контент?</h2>
-          <p>
-            У каждого отзыва есть кнопка «Report». Жалобы попадают в модерацию для разбирательства.
-          </p>
+          <h2 className="text-xl font-semibold mb-2">{t('faq.reportTitle')}</h2>
+          <p>{t('faq.reportText')}</p>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold mb-2">Как присоединиться к событию?</h2>
-          <p>
-            На странице события нажми «Join». После события можно оставить отзыв и событию, и партнёрам.
-          </p>
+          <h2 className="text-xl font-semibold mb-2">{t('faq.joinTitle')}</h2>
+          <p>{t('faq.joinText')}</p>
         </div>
       </div>
     </div>

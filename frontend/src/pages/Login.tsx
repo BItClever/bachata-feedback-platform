@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -11,6 +12,7 @@ const Login: React.FC = () => {
 
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +23,7 @@ const Login: React.FC = () => {
       await login(email, password);
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed');
+      setError(err.response?.data?.message || t('errors.loginFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -32,14 +34,14 @@ const Login: React.FC = () => {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
+            {t('auth.login.title')}
           </h2>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
+                {t('auth.login.email')}
               </label>
               <input
                 id="email"
@@ -47,27 +49,27 @@ const Login: React.FC = () => {
                 type="email"
                 required
                 className="input-field"
-                placeholder="Email address"
+                placeholder={t('auth.login.email') || 'Email'}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
+                {t('auth.login.password')}
               </label>
 
               <div className="relative">
-                {<input
+                <input
                   id="password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   required
                   className="input-field pr-10"
-                  placeholder="Password"
+                  placeholder={t('auth.login.password') || 'Password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                />}
+                />
                 <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
                   {showPassword ? '🙈' : '👁️'}
                 </button>
@@ -87,13 +89,13 @@ const Login: React.FC = () => {
               disabled={isLoading}
               className="btn-primary w-full"
             >
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isLoading ? t('auth.login.signingIn') : t('auth.login.signIn')}
             </button>
           </div>
 
           <div className="text-center">
             <Link to="/register" className="text-primary-600 hover:text-primary-500">
-              Don't have an account? Sign up
+              {t('auth.login.noAccount')}
             </Link>
           </div>
         </form>

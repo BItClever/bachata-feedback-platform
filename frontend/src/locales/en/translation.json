@@ -1,0 +1,430 @@
+{
+  "app": {
+    "title": "Bachata Feedback Platform",
+    "footer": "© 2025 Bachata Feedback Platform. All rights reserved."
+  },
+
+  "nav": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "events": "Events",
+    "admin": "Admin",
+    "moderation": "Moderation",
+    "profile": "Profile",
+    "faq": "FAQ",
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout"
+  },
+
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "close": "Close",
+    "save": "Save",
+    "saving": "Saving...",
+    "saved": "Saved",
+    "create": "Create",
+    "creating": "Creating...",
+    "update": "Update",
+    "updated": "Updated",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleted": "Deleted",
+    "upload": "Upload",
+    "uploading": "Uploading...",
+    "uploaded": "Uploaded",
+    "report": "Report",
+    "tryAgain": "Try again",
+    "prev": "Prev",
+    "next": "Next",
+    "back": "Back",
+    "search": "Search",
+    "view": "View",
+    "hide": "Hide",
+    "yes": "Yes",
+    "no": "No",
+    "anonymous": "Anonymous",
+    "loading": "Loading...",
+    "notFound": "Not found",
+    "error": "Something went wrong"
+  },
+
+  "errors": {
+    "failedLoadEvents": "Failed to load events. Please try again later.",
+    "failedLoadEventReviews": "Failed to load event reviews.",
+    "failedLoadReviews": "Failed to load reviews. Please try again later.",
+    "registrationFailed": "Registration failed",
+    "loginFailed": "Login failed",
+    "passwordsDontMatch": "Passwords do not match",
+    "failedCreateEvent": "Failed to create event",
+    "failedUploadCover": "Cover upload failed",
+    "failedJoin": "Failed to join",
+    "failedLeave": "Failed to leave",
+    "failedAlbumUpload": "Album upload failed",
+    "failedDelete": "Delete failed",
+    "failedReport": "Failed to report",
+    "failedUpdateProfile": "Failed to update profile",
+    "failedUploadPhoto": "Failed to upload photo",
+    "failedSetMainPhoto": "Failed to set main photo",
+    "failedDeletePhoto": "Failed to delete photo",
+    "failedSaveProfile": "Failed to save profile",
+    "failedSaveSettings": "Failed to save settings",
+    "failedSyncRoles": "Failed to sync roles",
+    "failedAssignRole": "Failed to assign role",
+    "failedRevokeRole": "Failed to revoke role",
+    "failedLoadRolesPerms": "Failed to load roles/permissions",
+    "accessDenied": "Access denied."
+  },
+
+  "auth": {
+    "login": {
+      "title": "Sign in to your account",
+      "email": "Email address",
+      "password": "Password",
+      "signIn": "Sign in",
+      "signingIn": "Signing in...",
+      "noAccount": "Don't have an account? Sign up"
+    },
+    "register": {
+      "title": "Create your account",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "nickname": "Nickname (optional)",
+      "email": "Email address",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "create": "Create account",
+      "creating": "Creating account...",
+      "haveAccount": "Already have an account? Sign in"
+    }
+  },
+
+  "home": {
+    "title": "Bachata Feedback Platform",
+    "subtitle": "Share feedback, improve your dancing, and connect with the bachata community. Get constructive reviews from dance partners and track your progress.",
+    "cta": {
+      "getStarted": "Get Started",
+      "signIn": "Sign In",
+      "goDashboard": "Go to Dashboard"
+    },
+    "stats": {
+      "users": "Users",
+      "totalReviews": "Total reviews",
+      "events": "Events"
+    },
+    "features": {
+      "anonymousTitle": "Anonymous Feedback",
+      "anonymousText": "Give and receive honest feedback anonymously to improve your dancing without awkwardness.",
+      "progressTitle": "Track Progress",
+      "progressText": "Monitor your improvement over time with detailed ratings and constructive comments.",
+      "eventsTitle": "Community Events",
+      "eventsText": "Connect feedback to specific events and build a stronger dance community."
+    }
+  },
+
+  "usersList": {
+    "title": "Community Members",
+    "searchPlaceholder": "Search users...",
+    "empty": "No users found.",
+    "emptyWithSearch": "No users found matching your search.",
+    "page": "Page {{page}} / {{total}}"
+  },
+
+  "userCard": {
+    "leaveReview": "Leave Review",
+    "level": "Level:",
+    "dancingSince": "Dancing since:",
+    "styles": "Styles:",
+    "reviews": "reviews",
+    "avg": "avg {{value}}/5"
+  },
+
+  "userDetails": {
+    "back": "Back",
+    "leaveReview": "Leave Review",
+    "photos": "Photos",
+    "noPhotos": "No photos.",
+    "allReviews": "All Reviews",
+    "noReviewsYet": "No reviews yet.",
+    "hiddenByPrivacy": "Hidden by privacy settings",
+    "report": "Report",
+    "role": "Role:",
+    "level": "Level:",
+    "styles": "Styles:",
+    "dancingSince": "Dancing since:",
+    "notFound": "Not found"
+  },
+
+  "myReviews": {
+    "title": "My Reviews",
+    "back": "Back",
+    "received": "Received",
+    "given": "Given",
+    "noReviews": "No reviews.",
+    "report": "Report"
+  },
+
+  "dashboard": {
+    "welcome": "Welcome, {{name}}!",
+    "subtitle": "Here's your feedback dashboard",
+    "errorLoad": "Failed to load reviews. Please try again later.",
+    "metrics": {
+      "received": "Reviews Received",
+      "average": "Average Rating",
+      "recent": "Recent Feedback"
+    },
+    "recentReviews": "Recent Reviews",
+    "viewAll": "View all",
+    "noReviewsYet": "No reviews yet. Dance more and get feedback!"
+  },
+
+  "events": {
+    "title": "Events",
+    "searchPlaceholder": "Search events...",
+    "create": "Create Event",
+    "none": "No events found.",
+    "viewReviews": "View reviews",
+    "hideReviews": "Hide reviews",
+    "join": "Join Event",
+    "leave": "Leave Event",
+    "rate": "Rate Event",
+    "participants": "participants",
+    "createdBy": "Created by {{name}}",
+    "dateAt": "{{date}} at {{time}}"
+  },
+
+  "eventModal": {
+    "title": "Create New Event",
+    "name": "Event Name",
+    "description": "Description",
+    "dateTime": "Date & Time",
+    "location": "Location",
+    "cover": "Cover image (optional)",
+    "hint": "JPEG/PNG/WEBP up to 10 MB",
+    "placeholders": {
+      "name": "e.g., Saturday Bachata Social",
+      "description": "Describe your event...",
+      "location": "e.g., Dance Studio XYZ, Main Street 123"
+    },
+    "cancel": "Cancel",
+    "create": "Create Event",
+    "creating": "Creating...",
+    "error": "Failed to create event"
+  },
+
+  "eventDetails": {
+    "updateCover": "Update cover",
+    "upload": "Upload",
+    "reviews": "Event reviews",
+    "album": "Event album",
+    "noPhotos": "No photos yet.",
+    "delete": "Delete",
+    "report": "Report",
+    "tipAspect": "Tip: images are shown uncropped (object-contain) with 4:3 frame to avoid weird aspect issues.",
+    "joined": "Joined the event",
+    "left": "Left the event",
+    "coverUploaded": "Cover uploaded",
+    "participants": "participants",
+    "createdBy": "Created by {{name}}"
+  },
+
+  "eventReviewModal": {
+    "title": "Rate Event",
+    "writtenOptional": "Written Feedback (optional)",
+    "submit": "Submit",
+    "submitting": "Submitting...",
+    "cancel": "Cancel",
+    "anonymous": "Submit anonymously"
+  },
+
+  "eventReviewsPanel": {
+    "loading": "Loading event reviews...",
+    "failed": "Failed to load event reviews.",
+    "none": "No reviews for this event yet.",
+    "avgTitle": "Average by aspects",
+    "recentTitle": "Recent reviews",
+    "report": "Report",
+    "anonymous": "Anonymous"
+  },
+
+  "reviewModal": {
+    "submitTitle": "Submit Review",
+    "for": "Review for",
+    "eventOptional": "Event (optional)",
+    "reviewType": "Review Type",
+    "writtenOptional": "Written Feedback (optional)",
+    "cancel": "Cancel",
+    "submit": "Submit Review",
+    "submitting": "Submitting...",
+    "selectDancer": "Select a dancer",
+    "noSpecificEvent": "No specific event",
+    "anonymous": "Submit anonymously"
+  },
+
+  "adminRoles": {
+    "title": "Admin Roles",
+    "accessDenied": "Access denied.",
+    "sync": "Sync Roles",
+    "toastSynced": "Roles synchronized",
+    "rolesPerms": "Roles & Permissions",
+    "noRoles": "No roles found.",
+    "permsShort": "perms",
+    "noPerms": "No permissions.",
+    "allPerms": "All permissions",
+    "assignRevoke": "Assign / Revoke Roles",
+    "searchUsers": "Search users by name, nickname or email...",
+    "noUsers": "No users found",
+    "selectUser": "Select a user to manage roles.",
+    "selected": "Selected:",
+    "currentRoles": "Current roles",
+    "loading": "Loading...",
+    "noRolesUser": "No roles",
+    "actions": "Actions",
+    "assign": "Assign {{role}}",
+    "revoke": "Revoke {{role}}",
+    "revokeTitle": "Revoke",
+    "toastAssigned": "Role {{role}} assigned",
+    "toastRevoked": "Role {{role}} revoked"
+  },
+
+  "adminModeration": {
+    "title": "Moderation",
+    "status": "Status:",
+    "searchPlaceholder": "Search by name/event...",
+    "noItems": "No items",
+    "setGreen": "Set Green",
+    "setYellow": "Set Yellow",
+    "setRed": "Set Red",
+    "requeue": "Requeue",
+    "showDetails": "Show details",
+    "hideDetails": "Hide details",
+    "reports": "Reports",
+    "reportsLoading": "Loading…",
+    "reportsEmpty": "No reports",
+    "by": "By:",
+    "reason": "Reason:",
+    "setLevelReason": "Set level and reason",
+    "apply": "Apply",
+    "photoReports": "Photo Reports",
+    "refresh": "Refresh",
+    "photoReportsEmpty": "No photo reports",
+    "keepResolve": "Keep & Resolve",
+    "deleteResolve": "Delete Photo & Resolve",
+    "noPreview": "No preview"
+  },
+
+  "profile": {
+    "title": "My Profile",
+    "editProfile": "Edit Profile",
+    "updated": "Profile updated successfully!",
+    "errorUpdate": "Failed to update profile",
+    "avatarUpload": "Upload Avatar/Photo",
+    "editAvatarFocus": "Edit avatar focus",
+    "about": "About",
+    "level": "Level",
+    "role": "Role",
+    "dancingSince": "Dancing Since",
+    "danceStyles": "Dance Styles",
+    "myRatings": "My Ratings",
+    "lead": "Lead",
+    "follow": "Follow",
+    "myPhotos": "My Photos",
+    "noPhotos": "No photos yet. Upload your first photo!",
+    "main": "Main",
+    "setMain": "Set main",
+    "delete": "Delete",
+    "privacyTitle": "Privacy Settings",
+    "privacy": {
+      "allowReviews": "Allow reviews",
+      "showRatingsToOthers": "Show numeric ratings to others",
+      "showTextReviewsToOthers": "Show text reviews to others",
+      "allowAnonymousReviews": "Allow anonymous reviews",
+      "showPhotosToGuests": "Show photos to guests"
+    },
+    "saveSettings": "Save Settings",
+    "saving": "Saving...",
+    "saved": "Settings updated!"
+  },
+
+  "onboarding": {
+    "title": "Welcome! Let’s set up your account",
+    "step1": {
+      "intro": "Tell us a bit about you to improve review suggestions.",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "nickname": "Nickname (optional)",
+      "role": "Role",
+      "level": "Level",
+      "selectRole": "Select role",
+      "selectLevel": "Select your level",
+      "skip": "Skip",
+      "saveContinue": "Save & continue",
+      "saving": "Saving..."
+    },
+    "step2": {
+      "intro": "Privacy controls. You can change them anytime in Profile.",
+      "saveContinue": "Save & continue",
+      "back": "Back",
+      "saving": "Saving..."
+    },
+    "step3": {
+      "tipsIntro": "Tips: leave constructive, specific feedback. After events, you can rate the event and partners you danced with.",
+      "bullets": {
+        "numeric": "Numeric stars: quick, anonymous, shown faster.",
+        "text": "Text: helpful but goes through moderation.",
+        "control": "You control visibility in Settings."
+      },
+      "finish": "Finish"
+    }
+  },
+
+  "avatarFocus": {
+    "title": "Adjust avatar focus",
+    "help": "Drag inside the circle to set the point of interest (face/key object).",
+    "x": "Horizontal (X)",
+    "y": "Vertical (Y)",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving..."
+  },
+
+  "reasonBadge": {
+    "source": "Source:",
+    "ai": "AI",
+    "none": "—",
+    "noDetails": "No details"
+  },
+
+  "faq": {
+    "title": "FAQ",
+    "whatTitle": "What is this platform?",
+    "whatText": "A place for bachata dancers to give and receive constructive feedback, and to rate events.",
+    "moderationTitle": "How does moderation work?",
+    "moderationText": "Text reviews pass automatic moderation (LLM). The system assigns Green/Yellow/Red and provides a comment. Red and pending content is hidden from outsiders.",
+    "privacyTitle": "Anonymity and privacy",
+    "privacyText": "You can leave anonymous reviews (if the user allows it). Visibility of ratings and text is controlled in profile privacy settings.",
+    "whyReviewsTitle": "Why leave reviews?",
+    "whyReviewsText": "Feedback helps improve dance, partnership connection, and event atmosphere. Keep it brief and constructive.",
+    "reportTitle": "How to report content?",
+    "reportText": "Every review has a “Report” button. Reports go to moderation.",
+    "joinTitle": "How to join an event?",
+    "joinText": "On the event page click “Join”. After the event you can leave a review to the event and to partners."
+  },
+
+  "aspects": {
+    "location": "location",
+    "music": "music",
+    "crowd": "crowd",
+    "organization": "organization",
+    "technique": "technique",
+    "musicality": "musicality",
+    "leading": "leading",
+    "comfort": "comfort",
+    "following": "following",
+    "connection": "connection",
+    "lead": "Lead",
+    "follow": "Follow",
+    "both": "Both"
+  }
+}

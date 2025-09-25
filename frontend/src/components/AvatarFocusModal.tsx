@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface AvatarFocusModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ const AvatarFocusModal: React.FC<AvatarFocusModalProps> = ({ isOpen, onClose, ph
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const areaRef = useRef<HTMLDivElement | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     setFx(photo.focusX ?? 50);
@@ -50,7 +52,7 @@ const AvatarFocusModal: React.FC<AvatarFocusModalProps> = ({ isOpen, onClose, ph
   };
 
   const onPointerUp: React.PointerEventHandler<HTMLDivElement> = (e) => {
-    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { }
     setDragging(false);
   };
 
@@ -60,13 +62,13 @@ const AvatarFocusModal: React.FC<AvatarFocusModalProps> = ({ isOpen, onClose, ph
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center px-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
         <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">Настроить фокус аватара</h3>
+          <h3 className="text-lg font-semibold text-gray-900">{t('avatarFocus.title')}</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700" aria-label="Close">✕</button>
         </div>
 
         <div className="p-4">
           <p className="text-sm text-gray-600 mb-3">
-            Перетащи внутри круга туда, где должен быть центр внимания (лицо/ключевой объект).
+            {t('avatarFocus.help')}
           </p>
 
           <div
@@ -87,7 +89,6 @@ const AvatarFocusModal: React.FC<AvatarFocusModalProps> = ({ isOpen, onClose, ph
                 style={{ objectPosition: `${fx}% ${fy}%` }}
               />
             </div>
-            {/* Кроссхэйр (индикатор точки фокуса) */}
             <div
               className="absolute w-4 h-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow"
               style={{ left: `${fx}%`, top: `${fy}%` }}
@@ -96,7 +97,7 @@ const AvatarFocusModal: React.FC<AvatarFocusModalProps> = ({ isOpen, onClose, ph
 
           <div className="mt-4 grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Горизонталь (X)</label>
+              <label className="block text-xs text-gray-600 mb-1">{t('avatarFocus.x')}</label>
               <input
                 type="range"
                 min={0}
@@ -107,7 +108,7 @@ const AvatarFocusModal: React.FC<AvatarFocusModalProps> = ({ isOpen, onClose, ph
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Вертикаль (Y)</label>
+              <label className="block text-xs text-gray-600 mb-1">{t('avatarFocus.y')}</label>
               <input
                 type="range"
                 min={0}
@@ -121,7 +122,7 @@ const AvatarFocusModal: React.FC<AvatarFocusModalProps> = ({ isOpen, onClose, ph
         </div>
 
         <div className="p-4 border-t border-gray-200 flex gap-3 justify-end">
-          <button className="btn-secondary" onClick={onClose} disabled={busy}>Отмена</button>
+          <button className="btn-secondary" onClick={onClose} disabled={busy}>{t('avatarFocus.cancel')}</button>
           <button
             className="btn-primary"
             onClick={async () => {
@@ -135,7 +136,7 @@ const AvatarFocusModal: React.FC<AvatarFocusModalProps> = ({ isOpen, onClose, ph
             }}
             disabled={busy}
           >
-            {busy ? 'Сохранение…' : 'Сохранить'}
+            {busy ? t('avatarFocus.saving') : t('avatarFocus.save')}
           </button>
         </div>
       </div>

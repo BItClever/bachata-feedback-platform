@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { eventsAPI } from '../services/api';
 import { eventsAPIEx } from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 interface EventModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onEventCreated
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const { t } = useTranslation();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -41,7 +43,6 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onEventCreated
         try {
           await eventsAPIEx.uploadCover(eventId, coverFile);
         } catch (err: any) {
-          // не блокируем создание события, только показываем мягкую ошибку
           console.error('Cover upload error', err);
         }
       }
@@ -49,11 +50,10 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onEventCreated
       onEventCreated();
       onClose();
 
-      // Reset form
       setFormData({ name: '', description: '', date: '', location: '' });
       setCoverFile(null);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create event');
+      setError(err.response?.data?.message || t('eventModal.error') || 'Failed to create event');
     } finally {
       setIsLoading(false);
     }
@@ -65,7 +65,7 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onEventCreated
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-bold text-gray-900">Create New Event</h3>
+          <h3 className="text-lg font-bold text-gray-900">{t('eventModal.title')}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600" >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -81,7 +81,7 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onEventCreated
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Event Name
+              {t('eventModal.name')}
             </label>
             <input
               type="text"
@@ -90,13 +90,13 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onEventCreated
               className="input-field"
               value={formData.name}
               onChange={handleChange}
-              placeholder="e.g., Saturday Bachata Social"
+              placeholder={t('eventModal.placeholders.name') || 'Event name'}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description
+              {t('eventModal.description')}
             </label>
             <textarea
               name="description"
@@ -104,13 +104,13 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onEventCreated
               className="input-field h-24"
               value={formData.description}
               onChange={handleChange}
-              placeholder="Describe your event..."
+              placeholder={t('eventModal.placeholders.description') || 'Describe your event...'}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Date & Time
+              {t('eventModal.dateTime')}
             </label>
             <input
               type="datetime-local"
@@ -124,7 +124,7 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onEventCreated
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Location
+              {t('eventModal.location')}
             </label>
             <input
               type="text"
@@ -133,13 +133,13 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onEventCreated
               className="input-field"
               value={formData.location}
               onChange={handleChange}
-              placeholder="e.g., Dance Studio XYZ, Main Street 123"
+              placeholder={t('eventModal.placeholders.location') || 'Location'}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Cover image (optional)
+              {t('eventModal.cover')}
             </label>
             <input
               type="file"
@@ -147,7 +147,7 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onEventCreated
               onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
               className="input-field"
             />
-            <p className="text-xs text-gray-500 mt-1">JPEG/PNG/WEBP up to 10 MB</p>
+            <p className="text-xs text-gray-500 mt-1">{t('eventModal.hint')}</p>
           </div>
 
           <div className="flex space-x-4 pt-4">
@@ -156,14 +156,14 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onEventCreated
               onClick={onClose}
               className="btn-secondary flex-1"
             >
-              Cancel
+              {t('eventModal.cancel')}
             </button>
             <button
               type="submit"
               disabled={isLoading}
               className="btn-primary flex-1"
             >
-              {isLoading ? 'Creating...' : 'Create Event'}
+              {isLoading ? t('eventModal.creating') : t('eventModal.create')}
             </button>
           </div>
         </form>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { usersAPI, userSettingsAPI, authAPI } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const Onboarding: React.FC = () => {
     const { user, updateUserData } = useAuth();
@@ -9,10 +10,10 @@ const Onboarding: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const navigate = useNavigate();
+    const { t } = useTranslation();
 
     useEffect(() => { if (!user) navigate('/login'); }, [user, navigate]);
 
-    // Шаг 1: профиль
     const [form, setForm] = useState({
         firstName: user?.firstName || '',
         lastName: user?.lastName || '',
@@ -21,7 +22,6 @@ const Onboarding: React.FC = () => {
         selfAssessedLevel: user?.selfAssessedLevel || '',
     });
 
-    // Шаг 2: приватность
     const [settings, setSettings] = useState({
         allowReviews: true,
         showRatingsToOthers: true,
@@ -48,7 +48,7 @@ const Onboarding: React.FC = () => {
             updateUserData(me.data);
             setStep(2);
         } catch (e: any) {
-            setError(e?.response?.data?.message || 'Failed to save profile');
+            setError(e?.response?.data?.message || t('errors.failedSaveProfile') || 'Failed to save profile');
         } finally {
             setSaving(false);
         }
@@ -60,7 +60,7 @@ const Onboarding: React.FC = () => {
             await userSettingsAPI.updateMine(settings);
             setStep(3);
         } catch (e: any) {
-            setError(e?.response?.data?.message || 'Failed to save settings');
+            setError(e?.response?.data?.message || t('errors.failedSaveSettings') || 'Failed to save settings');
         } finally {
             setSaving(false);
         }
@@ -71,58 +71,58 @@ const Onboarding: React.FC = () => {
     return (
         <div className="max-w-2xl mx-auto px-4 py-8">
             <div className="bg-white rounded shadow p-6">
-                <h1 className="text-2xl font-bold mb-4">Welcome! Let’s set up your account</h1>
+                <h1 className="text-2xl font-bold mb-4">{t('onboarding.title')}</h1>
                 {error && <div className="mb-4 bg-red-50 border border-red-200 text-red-800 px-4 py-2 rounded">{error}</div>}
 
                 {step === 1 && (
                     <div className="space-y-4">
-                        <div className="text-gray-700">Tell us a bit about you to improve review suggestions.</div>
+                        <div className="text-gray-700">{t('onboarding.step1.intro')}</div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">First name</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('onboarding.step1.firstName')}</label>
                                 <input className="input-field" value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })} />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Last name</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('onboarding.step1.lastName')}</label>
                                 <input className="input-field" value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })} />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nickname (optional)</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('onboarding.step1.nickname')}</label>
                                 <input className="input-field" value={form.nickname} onChange={e => setForm({ ...form, nickname: e.target.value })} />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('onboarding.step1.role')}</label>
                                 <select className="input-field" value={form.dancerRole} onChange={e => setForm({ ...form, dancerRole: e.target.value })}>
-                                    <option value="">Select role</option>
+                                    <option value="">{t('onboarding.step1.selectRole')}</option>
                                     <option value="Lead">Lead</option>
                                     <option value="Follow">Follow</option>
                                     <option value="Both">Both</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('onboarding.step1.level')}</label>
                                 <select className="input-field" value={form.selfAssessedLevel} onChange={e => setForm({ ...form, selfAssessedLevel: e.target.value })}>
-                                    <option value="">Select your level</option>
+                                    <option value="">{t('onboarding.step1.selectLevel')}</option>
                                     {['Beginner', 'Beginner-Intermediate', 'Intermediate', 'Intermediate-Advanced', 'Advanced', 'Professional'].map(l => <option key={l} value={l}>{l}</option>)}
                                 </select>
                             </div>
                         </div>
                         <div className="flex gap-3">
-                            <button className="btn-secondary" onClick={() => navigate('/dashboard')}>Skip</button>
-                            <button className="btn-primary" onClick={saveStep1} disabled={saving}>{saving ? 'Saving...' : 'Save & continue'}</button>
+                            <button className="btn-secondary" onClick={() => navigate('/dashboard')}>{t('onboarding.step1.skip')}</button>
+                            <button className="btn-primary" onClick={saveStep1} disabled={saving}>{saving ? t('onboarding.step1.saving') : t('onboarding.step1.saveContinue')}</button>
                         </div>
                     </div>
                 )}
 
                 {step === 2 && (
                     <div className="space-y-4">
-                        <div className="text-gray-700">Privacy controls. You can change them anytime in Profile.</div>
+                        <div className="text-gray-700">{t('onboarding.step2.intro')}</div>
                         {([
-                            { key: 'allowReviews', label: 'Allow reviews' },
-                            { key: 'showRatingsToOthers', label: 'Show numeric ratings to others' },
-                            { key: 'showTextReviewsToOthers', label: 'Show text reviews to others' },
-                            { key: 'allowAnonymousReviews', label: 'Allow anonymous reviews' },
-                            { key: 'showPhotosToGuests', label: 'Show photos to guests' },
+                            { key: 'allowReviews', label: t('profile.privacy.allowReviews') },
+                            { key: 'showRatingsToOthers', label: t('profile.privacy.showRatingsToOthers') },
+                            { key: 'showTextReviewsToOthers', label: t('profile.privacy.showTextReviewsToOthers') },
+                            { key: 'allowAnonymousReviews', label: t('profile.privacy.allowAnonymousReviews') },
+                            { key: 'showPhotosToGuests', label: t('profile.privacy.showPhotosToGuests') },
                         ] as const).map(i => (
                             <label key={i.key} className="flex items-center gap-2">
                                 <input type="checkbox" checked={(settings as any)[i.key]} onChange={e => setSettings({ ...settings, [i.key]: e.target.checked })} />
@@ -130,8 +130,8 @@ const Onboarding: React.FC = () => {
                             </label>
                         ))}
                         <div className="flex gap-3">
-                            <button className="btn-secondary" onClick={() => setStep(1)}>Back</button>
-                            <button className="btn-primary" onClick={saveStep2} disabled={saving}>{saving ? 'Saving...' : 'Save & continue'}</button>
+                            <button className="btn-secondary" onClick={() => setStep(1)}>{t('onboarding.step2.back')}</button>
+                            <button className="btn-primary" onClick={saveStep2} disabled={saving}>{saving ? t('onboarding.step2.saving') : t('onboarding.step2.saveContinue')}</button>
                         </div>
                     </div>
                 )}
@@ -139,15 +139,15 @@ const Onboarding: React.FC = () => {
                 {step === 3 && (
                     <div className="space-y-4">
                         <div className="text-gray-700">
-                            Tips: leave constructive, specific feedback. After events, you can rate the event and partners you danced with.
+                            {t('onboarding.step3.tipsIntro')}
                         </div>
                         <ul className="list-disc pl-6 text-gray-700">
-                            <li>Numeric stars: quick, anonymous, shown faster.</li>
-                            <li>Text: helpful but goes through moderation.</li>
-                            <li>You control visibility in Settings.</li>
+                            <li>{t('onboarding.step3.bullets.numeric')}</li>
+                            <li>{t('onboarding.step3.bullets.text')}</li>
+                            <li>{t('onboarding.step3.bullets.control')}</li>
                         </ul>
                         <div>
-                            <button className="btn-primary" onClick={() => navigate('/dashboard')}>Finish</button>
+                            <button className="btn-primary" onClick={() => navigate('/dashboard')}>{t('onboarding.step3.finish')}</button>
                         </div>
                     </div>
                 )}

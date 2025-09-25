@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User } from '../services/api';
 import ReviewModal from './ReviewModal';
+import { useTranslation } from 'react-i18next';
 
 interface UserCardProps {
   user: User;
@@ -8,6 +9,7 @@ interface UserCardProps {
 
 const UserCard: React.FC<UserCardProps> = ({ user }) => {
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <>
@@ -41,9 +43,9 @@ const UserCard: React.FC<UserCardProps> = ({ user }) => {
           )}
           {(typeof user.reviewsReceivedCount !== 'undefined') && (
             <p className="text-gray-600 text-sm">
-              {user.reviewsReceivedCount} reviews
+              {user.reviewsReceivedCount} {t('userCard.reviews')}
               {typeof user.avgRating === 'number' &&
-                <> • avg {user.avgRating.toFixed(1)}/5</>
+                <> • {t('userCard.avg', { value: user.avgRating.toFixed(1) })}</>
               }
             </p>
           )}
@@ -51,16 +53,16 @@ const UserCard: React.FC<UserCardProps> = ({ user }) => {
 
         <div className="space-y-2 text-sm text-gray-600">
           {user.selfAssessedLevel && (
-            <p><span className="font-medium">Level:</span> {user.selfAssessedLevel}</p>
+            <p><span className="font-medium">{t('userCard.level')}</span> {user.selfAssessedLevel}</p>
           )}
           {user.startDancingDate && (
             <p>
-              <span className="font-medium">Dancing since:</span>{' '}
+              <span className="font-medium">{t('userCard.dancingSince')}</span>{' '}
               {new Date(user.startDancingDate).getFullYear()}
             </p>
           )}
           {user.danceStyles && (
-            <p><span className="font-medium">Styles:</span> {user.danceStyles}</p>
+            <p><span className="font-medium">{t('userCard.styles')}</span> {user.danceStyles}</p>
           )}
         </div>
 
@@ -75,7 +77,7 @@ const UserCard: React.FC<UserCardProps> = ({ user }) => {
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowReviewModal(true); }}
             className="btn-primary w-full"
           >
-            Leave Review
+            {t('userCard.leaveReview')}
           </button>
         </div>
       </div>

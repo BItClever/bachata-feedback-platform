@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { eventReviewsAPI } from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   isOpen: boolean;
@@ -16,6 +17,7 @@ const EventReviewModal: React.FC<Props> = ({ isOpen, onClose, eventId, onSubmitt
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const { t } = useTranslation();
 
   if (!isOpen) return null;
 
@@ -64,7 +66,7 @@ const EventReviewModal: React.FC<Props> = ({ isOpen, onClose, eventId, onSubmitt
       setTextReview('');
       setIsAnonymous(false);
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.response?.data?.Message || 'Failed to submit event review';
+      const msg = err.response?.data?.message || err.response?.data?.Message || (t('errors.failedLoadEventReviews') || 'Failed to submit event review');
       setError(msg);
     } finally {
       setIsLoading(false);
@@ -75,7 +77,7 @@ const EventReviewModal: React.FC<Props> = ({ isOpen, onClose, eventId, onSubmitt
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-bold text-gray-900">Rate Event</h3>
+          <h3 className="text-lg font-bold text-gray-900">{t('eventReviewModal.title')}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -91,18 +93,18 @@ const EventReviewModal: React.FC<Props> = ({ isOpen, onClose, eventId, onSubmitt
         <form onSubmit={handleSubmit} className="space-y-5">
           {Object.entries(ratings).map(([k, v]) => (
             <div key={k} className="flex items-center justify-between">
-              <span className="capitalize text-gray-700">{k}</span>
+              <span className="capitalize text-gray-700">{t(`aspects.${k}`) || k}</span>
               <StarInput value={v} onChange={(n) => setRating(k, n)} />
             </div>
           ))}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Written Feedback (optional)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('eventReviewModal.writtenOptional')}</label>
             <textarea
               className="input-field h-24"
               value={textReview}
               onChange={(e) => setTextReview(e.target.value)}
-              placeholder="What did you like about the event?"
+              placeholder=""
             />
           </div>
 
@@ -115,14 +117,14 @@ const EventReviewModal: React.FC<Props> = ({ isOpen, onClose, eventId, onSubmitt
               className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
             />
             <label htmlFor="isAnonymousEvent" className="ml-2 block text-sm text-gray-900">
-              Submit anonymously
+              {t('eventReviewModal.anonymous')}
             </label>
           </div>
 
           <div className="flex gap-4 pt-2">
-            <button type="button" onClick={onClose} className="btn-secondary flex-1">Cancel</button>
+            <button type="button" onClick={onClose} className="btn-secondary flex-1">{t('eventReviewModal.cancel')}</button>
             <button type="submit" disabled={isLoading} className="btn-primary flex-1">
-              {isLoading ? 'Submitting...' : 'Submit'}
+              {isLoading ? t('eventReviewModal.submitting') : t('eventReviewModal.submit')}
             </button>
           </div>
         </form>

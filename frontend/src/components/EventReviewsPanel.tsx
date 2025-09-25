@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { eventReviewsAPI, EventReview } from '../services/api';
 import { reportsAPI } from '../services/api';
 import { ReasonBadge } from '../components/ReasonBadge';
+import { useTranslation } from 'react-i18next';
 
 interface EventReviewsPanelProps {
   eventId: number;
@@ -11,6 +12,7 @@ const EventReviewsPanel: React.FC<EventReviewsPanelProps> = ({ eventId }) => {
   const [reviews, setReviews] = useState<EventReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { t } = useTranslation();
 
   const fetchReviews = async () => {
     try {
@@ -20,7 +22,7 @@ const EventReviewsPanel: React.FC<EventReviewsPanelProps> = ({ eventId }) => {
       setReviews(res.data);
     } catch (err: any) {
       console.error('Error loading event reviews:', err);
-      setError('Failed to load event reviews.');
+      setError(t('eventReviewsPanel.failed') || 'Failed to load event reviews.');
     } finally {
       setLoading(false);
     }
@@ -31,7 +33,6 @@ const EventReviewsPanel: React.FC<EventReviewsPanelProps> = ({ eventId }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
 
-  // Средние по каждому аспекту (на основе всех отзывов)
   const averages = useMemo(() => {
     const acc: Record<string, { sum: number; count: number }> = {};
     for (const r of reviews) {
@@ -52,7 +53,7 @@ const EventReviewsPanel: React.FC<EventReviewsPanelProps> = ({ eventId }) => {
   if (loading) {
     return (
       <div className="p-4">
-        <div className="animate-pulse text-gray-500">Loading event reviews...</div>
+        <div className="animate-pulse text-gray-500">{t('eventReviewsPanel.loading')}</div>
       </div>
     );
   }
@@ -68,17 +69,16 @@ const EventReviewsPanel: React.FC<EventReviewsPanelProps> = ({ eventId }) => {
   return (
     <div className="p-4 border-t border-gray-200">
       {reviews.length === 0 ? (
-        <div className="text-gray-500">No reviews for this event yet.</div>
+        <div className="text-gray-500">{t('eventReviewsPanel.none')}</div>
       ) : (
         <>
-          {/* Средние по аспектам */}
           {Object.keys(averages).length > 0 && (
             <div className="mb-4">
-              <h4 className="text-sm font-semibold text-gray-900 mb-2">Average by aspects</h4>
+              <h4 className="text-sm font-semibold text-gray-900 mb-2">{t('eventReviewsPanel.avgTitle')}</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {Object.entries(averages).map(([k, v]) => (
                   <div key={k} className="flex justify-between bg-gray-50 rounded px-3 py-2">
-                    <span className="capitalize text-gray-700">{k}</span>
+                    <span className="capitalize text-gray-700">{t(`aspects.${k}`) || k}</span>
                     <span className="font-semibold text-gray-900">{v.toFixed(1)}/5</span>
                   </div>
                 ))}
@@ -86,15 +86,14 @@ const EventReviewsPanel: React.FC<EventReviewsPanelProps> = ({ eventId }) => {
             </div>
           )}
 
-          {/* Последние отзывы */}
           <div>
-            <h4 className="text-sm font-semibold text-gray-900 mb-2">Recent reviews</h4>
+            <h4 className="text-sm font-semibold text-gray-900 mb-2">{t('eventReviewsPanel.recentTitle')}</h4>
             <div className="space-y-3">
               {reviews.slice(0, 5).map((r) => (
                 <div key={r.id} className="border border-gray-200 rounded p-3">
                   <div className="flex justify-between">
                     <div className="text-sm text-gray-800">
-                      {r.isAnonymous ? 'Anonymous' : r.reviewerName}
+                      {r.isAnonymous ? t('eventReviewsPanel.anonymous') : r.reviewerName}
                       {r.moderationLevel && (
                         <ReasonBadge
                           level={r.moderationLevel}
@@ -115,15 +114,15 @@ const EventReviewsPanel: React.FC<EventReviewsPanelProps> = ({ eventId }) => {
                     <div className="text-sm text-gray-600"></div>
                     <button
                       className="text-xs text-red-700 hover:underline"
-                      onClick={async () => { try { await reportsAPI.create({ targetType: 'EventReview', targetId: r.id, reason: 'Inappropriate' }); alert('Report submitted'); } catch (e: any) { alert(e.response?.data?.message || 'Failed'); } }}>
-                      Report
+                      onClick={async () => { try { await reportsAPI.create({ targetType: 'EventReview', targetId: r.id, reason: 'Inappropriate' }); alert(t('common.ok') || 'OK'); } catch (e: any) { alert(e.response?.data?.message || t('errors.failedReport') || 'Failed'); } }}>
+                      {t('eventReviewsPanel.report')}
                     </button>
                   </div>
                   {r.ratings && (
                     <div className="mt-2 grid grid-cols-2 gap-1 text-xs text-gray-600">
                       {Object.entries(r.ratings).map(([k, v]) => (
                         <div key={k} className="flex justify-between bg-gray-50 px-2 py-1 rounded">
-                          <span className="capitalize">{k}</span>
+                          <span className="capitalize">{t(`aspects.${k}`) || k}</span>
                           <span className="font-semibold">{v}/5</span>
                         </div>
                       ))}
