@@ -8,6 +8,7 @@ using BachataFeedback.Api.Services.Moderation;
 using BachataFeedback.Api.Services.Storage;
 using BachataFeedback.Core.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -97,6 +98,8 @@ builder.Services.AddAuthorization(options =>
 
     options.AddPolicy("AdminOnly", policy => policy.RequireRole(SystemRoles.Admin));
 });
+
+builder.Services.AddTransient<IClaimsTransformation, RolePermissionsClaimsTransformation>();
 
 // Services
 builder.Services.AddScoped<ITokenService, TokenService>();
