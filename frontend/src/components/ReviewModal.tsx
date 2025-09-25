@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { eventsAPI, usersAPI, reviewsAPI, Event, User } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -97,6 +98,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    (e as any).stopPropagation?.();
     setIsLoading(true);
     setError('');
     try {
@@ -169,12 +171,22 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
     </div>
   );
 
-  return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+  const modal = (
+    <div
+      className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-bold text-gray-900">Submit Review</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }}
+            className="text-gray-400 hover:text-gray-600"
+          >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -186,7 +198,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5" onClick={(e) => e.stopPropagation()}>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Review for
@@ -269,9 +281,14 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
               Submit anonymously
             </label>
           </div>
-
           <div className="flex gap-4 pt-2">
-            <button type="button" onClick={onClose} className="btn-secondary flex-1">Cancel</button>
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }}
+              className="btn-secondary flex-1"
+            >
+              Cancel
+            </button>
             <button type="submit" disabled={isLoading} className="btn-primary flex-1">
               {isLoading ? 'Submitting...' : 'Submit Review'}
             </button>
@@ -280,6 +297,8 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 };
 
 export default ReviewModal;
