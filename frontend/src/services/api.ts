@@ -226,7 +226,7 @@ export const eventReviewsAPI = {
 };
 
 export const reportsAPI = {
-  create: (data: { targetType: 'Review' | 'Photo' | 'EventReview'; targetId: number; reason: string; description?: string }) =>
+  create: (data: { targetType: 'Review' | 'EventReview' | 'UserPhoto' | 'EventPhoto' | 'Photo'; targetId: number; reason: string; description?: string }) =>
     api.post('/reports', data),
 };
 
@@ -293,6 +293,11 @@ export const moderationAdminAPI = {
     api.get('/admin/moderation/eventreviews/list', { params }),
   getReportsByTarget: (targetType: 'Review' | 'EventReview' | 'Photo', targetId: number, status?: string) =>
     api.get('/admin/moderation/reports/by-target', { params: { targetType, targetId, status } }),
+  photoInfo: (photoId: number, kind?: 'UserPhoto' | 'EventPhoto') =>
+    api.get<{ kind: 'User' | 'Event'; userId?: string; eventId?: number; smallUrl: string; mediumUrl: string; largeUrl: string }>(
+      `/admin/moderation/photo-info/${photoId}`,
+      { params: kind ? { kind } : undefined }
+    ),
 };
 
 export const statsAPI = {
@@ -332,6 +337,16 @@ export const eventPhotosAPI = {
   },
   delete: (eventId: number, photoId: number) =>
     api.delete(`/events/${eventId}/photos/${photoId}`),
+};
+
+export const adminReportsAPI = {
+  list: (status: string = 'Pending') =>
+    api.get<{ id: number; reporterName: string; targetType: string; targetId: number; reason: string; description?: string; status: string; createdAt: string; }[]>(
+      '/admin/reports',
+      { params: { status } }
+    ),
+  resolve: (id: number, deleteTarget: boolean) =>
+    api.put(`/admin/reports/${id}/resolve`, { deleteTarget }),
 };
 
 export default api;

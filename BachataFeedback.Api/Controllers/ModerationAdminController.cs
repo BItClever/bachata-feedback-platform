@@ -256,4 +256,72 @@ public class ModerationAdminController : ControllerBase
         await _db.SaveChangesAsync();
         return Ok();
     }
+
+    [HttpGet("photo-info/{photoId}")]
+    public async Task<IActionResult> GetPhotoInfo(int photoId, [FromQuery] string? kind)
+    {
+        string BaseUrl(HttpRequest req) => $"{req.Scheme}://{req.Host}";
+        var baseUrl = BaseUrl(Request);
+
+        if (string.Equals(kind, "UserPhoto", StringComparison.OrdinalIgnoreCase))
+        {
+            var up = await _db.UserPhotos.AsNoTracking().FirstOrDefaultAsync(p => p.Id == photoId);
+            if (up == null) return NotFound(new { success = false, message = "Photo not found" });
+            var userId = up.UserId;
+            return Ok(new
+            {
+                kind = "User",
+                userId,
+                smallUrl = $"{baseUrl}/api/files/users/{userId}/photos/{photoId}/small",
+                mediumUrl = $"{baseUrl}/api/files/users/{userId}/photos/{photoId}/medium",
+                largeUrl = $"{baseUrl}/api/files/users/{userId}/photos/{photoId}/large"
+            });
+        }
+
+        if (string.Equals(kind, "EventPhoto", StringComparison.OrdinalIgnoreCase))
+        {
+            var ep = await _db.EventPhotos.AsNoTracking().FirstOrDefaultAsync(p => p.Id == photoId);
+            if (ep == null) return NotFound(new { success = false, message = "Photo not found" });
+            var eventId = ep.EventId;
+            return Ok(new
+            {
+                kind = "Event",
+                eventId,
+                smallUrl = $"{baseUrl}/api/files/events/{eventId}/photos/{photoId}/small",
+                mediumUrl = $"{baseUrl}/api/files/events/{eventId}/photos/{photoId}/medium",
+                largeUrl = $"{baseUrl}/api/files/events/{eventId}/photos/{photoId}/large"
+            });
+        }
+
+        // Фолбэк: как было — пробуем user, затем event
+        var upFallback = await _db.UserPhotos.AsNoTracking().FirstOrDefaultAsync(p => p.Id == photoId);
+        if (upFallback != null)
+        {
+            var userId = upFallback.UserId;
+            return Ok(new
+            {
+                kind = "User",
+                userId,
+                smallUrl = $"{baseUrl}/api/files/users/{userId}/photos/{photoId}/small",
+                mediumUrl = $"{baseUrl}/api/files/users/{userId}/photos/{photoId}/medium",
+                largeUrl = $"{baseUrl}/api/files/users/{userId}/photos/{photoId}/large"
+            });
+        }
+
+        var epFallback = await _db.EventPhotos.AsNoTracking().FirstOrDefaultAsync(p => p.Id == photoId);
+        if (epFallback != null)
+        {
+            var eventId = epFallback.EventId;
+            return Ok(new
+            {
+                kind = "Event",
+                eventId,
+                smallUrl = $"{baseUrl}/api/files/events/{eventId}/photos/{photoId}/small",
+                mediumUrl = $"{baseUrl}/api/files/events/{eventId}/photos/{photoId}/medium",
+                largeUrl = $"{baseUrl}/api/files/events/{eventId}/photos/{photoId}/large"
+            });
+        }
+
+        return NotFound(new { success = false, message = "Photo not found" });
+    }
 }

@@ -72,7 +72,7 @@ const UserCard: React.FC<UserCardProps> = ({ user }) => {
 
         <div className="mt-6">
           <button
-            onClick={() => setShowReviewModal(true)}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowReviewModal(true); }}
             className="btn-primary w-full"
           >
             Leave Review

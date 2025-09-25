@@ -1,4 +1,5 @@
 ﻿using BachataFeedback.Api.Data;
+using BachataFeedback.Api.Services.Storage;
 using BachataFeedback.Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -15,12 +16,14 @@ public class AdminController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly UserManager<User> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly IStorageService _storage;
 
-    public AdminController(ApplicationDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager)
+    public AdminController(ApplicationDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IStorageService storage)
     {
         _context = context;
         _userManager = userManager;
         _roleManager = roleManager;
+        _storage = storage;
     }
 
     [HttpGet("users")]
@@ -148,29 +151,118 @@ public class AdminController : ControllerBase
         if (report == null)
             return NotFound();
 
-        report.Status = "Resolved";
-        report.ResolvedAt = DateTime.UtcNow;
-
         if (model.DeleteTarget)
         {
-            if (report.TargetType == "Review")
+            switch (report.TargetType)
             {
-                var review = await _context.Reviews.FindAsync(report.TargetId);
-                if (review != null)
-                {
-                    _context.Reviews.Remove(review);
-                }
+                case "Review":
+                    {
+                        var review = await _context.Reviews.FindAsync(report.TargetId);
+                        if (review != null) _context.Reviews.Remove(review);
+                        break;
+                    }
+                case "EventReview":
+                    {
+                        var evReview = await _context.EventReviews.FindAsync(report.TargetId);
+                        if (evReview != null) _context.EventReviews.Remove(evReview);
+                        break;
+                    }
+                case "UserPhoto":
+                    {
+                        var up = await _context.UserPhotos.FirstOrDefaultAsync(p => p.Id == report.TargetId);
+                        if (up != null)
+                        {
+                            var basePath = up.FilePath; // users/{uid}/{photoId}/original.jpg
+                            if (!string.IsNullOrEmpty(basePath))
+                            {
+                                var prefix = basePath.Replace("/original.jpg", "");
+                                foreach (var variant in new[] { "original", "small", "medium", "large" })
+                                {
+                                    var key = $"{prefix}/{variant}.jpg";
+                                    await _storage.DeleteObjectAsync(key, CancellationToken.None);
+                                }
+                            }
+
+                            var owner = await _context.Users.FirstOrDefaultAsync(u => u.Id == up.UserId);
+                            if (owner != null && owner.MainPhotoPath == up.FilePath)
+                            {
+                                owner.MainPhotoPath = null;
+                            }
+
+                            _context.UserPhotos.Remove(up);
+                        }
+                        break;
+                    }
+                case "EventPhoto":
+                    {
+                        var ep = await _context.EventPhotos.FirstOrDefaultAsync(p => p.Id == report.TargetId);
+                        if (ep != null)
+                        {
+                            var basePath = ep.FilePath; // events/{eventId}/photos/{photoId}/original.jpg
+                            if (!string.IsNullOrEmpty(basePath))
+                            {
+                                var prefix = basePath.Replace("/original.jpg", "");
+                                foreach (var variant in new[] { "original", "small", "medium", "large" })
+                                {
+                                    var key = $"{prefix}/{variant}.jpg";
+                                    await _storage.DeleteObjectAsync(key, CancellationToken.None);
+                                }
+                            }
+
+                            _context.EventPhotos.Remove(ep);
+                        }
+                        break;
+                    }
+                case "Photo": // обратная совместимость для старых репортов
+                    {
+                        var up = await _context.UserPhotos.FirstOrDefaultAsync(p => p.Id == report.TargetId);
+                        if (up != null)
+                        {
+                            var basePath = up.FilePath;
+                            if (!string.IsNullOrEmpty(basePath))
+                            {
+                                var prefix = basePath.Replace("/original.jpg", "");
+                                foreach (var variant in new[] { "original", "small", "medium", "large" })
+                                {
+                                    var key = $"{prefix}/{variant}.jpg";
+                                    await _storage.DeleteObjectAsync(key, CancellationToken.None);
+                                }
+                            }
+
+                            var owner = await _context.Users.FirstOrDefaultAsync(u => u.Id == up.UserId);
+                            if (owner != null && owner.MainPhotoPath == up.FilePath)
+                            {
+                                owner.MainPhotoPath = null;
+                            }
+
+                            _context.UserPhotos.Remove(up);
+                        }
+                        else
+                        {
+                            var ep = await _context.EventPhotos.FirstOrDefaultAsync(p => p.Id == report.TargetId);
+                            if (ep != null)
+                            {
+                                var basePath = ep.FilePath;
+                                if (!string.IsNullOrEmpty(basePath))
+                                {
+                                    var prefix = basePath.Replace("/original.jpg", "");
+                                    foreach (var variant in new[] { "original", "small", "medium", "large" })
+                                    {
+                                        var key = $"{prefix}/{variant}.jpg";
+                                        await _storage.DeleteObjectAsync(key, CancellationToken.None);
+                                    }
+                                }
+
+                                _context.EventPhotos.Remove(ep);
+                            }
+                        }
+                        break;
+                    }
             }
-            else if (report.TargetType == "EventReview")
-            {
-                var evReview = await _context.EventReviews.FindAsync(report.TargetId);
-                if (evReview != null)
-                {
-                    _context.EventReviews.Remove(evReview);
-                }
-            }
-            // TargetType "Photo" можно обработать аналогично при необходимости
         }
+
+        report.Status = "Resolved";
+        report.ResolvedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
 

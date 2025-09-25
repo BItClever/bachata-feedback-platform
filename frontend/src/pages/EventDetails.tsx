@@ -4,6 +4,7 @@ import EventReviewModal from '../components/EventReviewModal';
 import EventReviewsPanel from '../components/EventReviewsPanel';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { reportsAPI } from '../services/api';
 
 const EventDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -118,6 +119,15 @@ const EventDetails: React.FC = () => {
         }
     };
 
+    const reportEventPhoto = async (photoId: number) => {
+        try {
+            await reportsAPI.create({ targetType: 'EventPhoto', targetId: photoId, reason: 'Inappropriate' });
+            showToast('Report submitted');
+        } catch (e: any) {
+            showToast(e?.response?.data?.message || 'Failed to report');
+        }
+    };
+
     const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2000); };
 
     if (loading) {
@@ -214,11 +224,26 @@ const EventDetails: React.FC = () => {
                                     <div className="w-full" style={{ aspectRatio: '4 / 3' }}>
                                         <img src={p.largeUrl} alt="" className="object-contain" />
                                     </div>
-                                    {(user && (ev.isUserParticipating || user.roles?.some(r => r === 'Admin' || r === 'Moderator' || r === 'Organizer') || ev.createdBy === user.id)) && (
-                                        <div className="p-2 text-right">
-                                            <button className="text-sm text-red-600 hover:underline" onClick={() => deleteAlbumPhoto(p.id)} disabled={albumBusy}>Delete</button>
-                                        </div>
-                                    )}
+                                    <div className="p-2 flex items-center justify-between">
+                                        {user ? (
+                                            <button
+                                                className="text-sm text-red-600 hover:underline"
+                                                onClick={() => reportEventPhoto(p.id)}
+                                                disabled={albumBusy}
+                                            >
+                                                Report
+                                            </button>
+                                        ) : <span></span>}
+                                        {(user && (ev.isUserParticipating || user.roles?.some(r => r === 'Admin' || r === 'Moderator' || r === 'Organizer') || ev.createdBy === user.id)) && (
+                                            <button
+                                                className="text-sm text-red-600 hover:underline"
+                                                onClick={() => deleteAlbumPhoto(p.id)}
+                                                disabled={albumBusy}
+                                            >
+                                                Delete
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { moderationAdminAPI } from '../services/api';
+import { moderationAdminAPI, adminReportsAPI } from '../services/api';
 import { ReasonBadge } from '../components/ReasonBadge';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -34,6 +34,16 @@ type EventReviewItem = ItemBase & {
 };
 type AnyItem = UserReviewItem | EventReviewItem;
 
+type PhotoReport = {
+  id: number;
+  targetId: number;
+  targetType: 'UserPhoto' | 'EventPhoto' | 'Photo';
+  reporterName: string;
+  reason: string;
+  createdAt: string;
+  preview?: { kind: 'User' | 'Event'; smallUrl: string; mediumUrl: string; largeUrl: string };
+};
+
 const AdminModeration: React.FC = () => {
   const { user } = useAuth();
   const canSee = !!user?.roles?.some(r => r === 'Admin' || r === 'Moderator');
@@ -44,6 +54,8 @@ const AdminModeration: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [reports, setReports] = useState<Record<string, any[]>>({});
+  const [photoReports, setPhotoReports] = useState<PhotoReport[]>([]);
+  const [photosLoading, setPhotosLoading] = useState<boolean>(false);
 
   const load = async () => {
     setError('');
@@ -81,6 +93,7 @@ const AdminModeration: React.FC = () => {
     return () => clearTimeout(id);
     // eslint-disable-next-line
   }, [search]);
+  useEffect(() => { loadPhotoReports(); }, []);
 
   const toggle = (k: string) => setExpanded(prev => ({ ...prev, [k]: !prev[k] }));
 
@@ -113,6 +126,55 @@ const AdminModeration: React.FC = () => {
       await load();
     } catch (e: any) {
       setError(e?.response?.data?.message || 'Failed to requeue');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const loadPhotoReports = async () => {
+    try {
+      setPhotosLoading(true);
+      const r = await adminReportsAPI.list('Pending');
+      const items: PhotoReport[] = await Promise.all(r.data.map(async (x) => {
+        const targetType = (x.targetType as 'UserPhoto' | 'EventPhoto' | 'Photo');
+        try {
+          const kind = targetType === 'Photo' ? undefined : targetType; // фолбэк для старых репортов
+          const info = await moderationAdminAPI.photoInfo(x.targetId, kind as any);
+          return {
+            id: x.id,
+            targetId: x.targetId,
+            targetType,
+            reporterName: x.reporterName,
+            reason: x.reason,
+            createdAt: x.createdAt,
+            preview: { kind: info.data.kind as any, smallUrl: info.data.smallUrl, mediumUrl: info.data.mediumUrl, largeUrl: info.data.largeUrl }
+          };
+        } catch {
+          return {
+            id: x.id,
+            targetId: x.targetId,
+            targetType,
+            reporterName: x.reporterName,
+            reason: x.reason,
+            createdAt: x.createdAt,
+          };
+        }
+      }));
+      setPhotoReports(items);
+    } catch {
+      // тихо
+    } finally {
+      setPhotosLoading(false);
+    }
+  };
+
+  const resolvePhotoReport = async (reportId: number, deleteTarget: boolean) => {
+    setBusy(true);
+    try {
+      await adminReportsAPI.resolve(reportId, deleteTarget);
+      await loadPhotoReports();
+    } catch (e: any) {
+      setError(e?.response?.data?.message || 'Failed to resolve photo report');
     } finally {
       setBusy(false);
     }
@@ -226,6 +288,45 @@ const AdminModeration: React.FC = () => {
           );
         })}
         {filtered.length === 0 && <div className="p-4 text-gray-500">No items</div>}
+      </div>
+      <div className="mt-6 bg-white rounded shadow">
+        <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">Photo Reports</h2>
+          <button className="btn-secondary" onClick={loadPhotoReports} disabled={photosLoading || busy}>
+            {photosLoading ? 'Loading…' : 'Refresh'}
+          </button>
+        </div>
+        {photosLoading ? (
+          <div className="p-4 text-gray-500">Loading…</div>
+        ) : photoReports.length === 0 ? (
+          <div className="p-4 text-gray-500">No photo reports</div>
+        ) : (
+          <div className="divide-y">
+            {photoReports.map(pr => (
+              <div key={pr.id} className="p-4 flex gap-4 items-start">
+                <div className="w-32 h-24 bg-gray-50 border rounded overflow-hidden flex items-center justify-center">
+                  {pr.preview ? (
+                    <img src={pr.preview.smallUrl} alt="" className="object-contain max-w-full max-h-full" />
+                  ) : (
+                    <span className="text-xs text-gray-400">No preview</span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-gray-800">
+                    <span className="text-gray-500">By:</span> {pr.reporterName}
+                    <span className="text-gray-400 mx-2">•</span>
+                    <span className="text-gray-500">Reason:</span> {pr.reason}
+                  </div>
+                  <div className="text-xs text-gray-500">{new Date(pr.createdAt).toLocaleString()}</div>
+                </div>
+                <div className="flex gap-2">
+                  <button className="btn-secondary" disabled={busy} onClick={() => resolvePhotoReport(pr.id, false)}>Keep & Resolve</button>
+                  <button className="btn-secondary" disabled={busy} onClick={() => resolvePhotoReport(pr.id, true)}>Delete Photo & Resolve</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -52,6 +52,15 @@ const UserDetails: React.FC = () => {
         }
     };
 
+    const reportUserPhoto = async (photoId: number) => {
+        try {
+            await reportsAPI.create({ targetType: 'UserPhoto', targetId: photoId, reason: 'Inappropriate', description: '' });
+            alert('Report submitted');
+        } catch (e: any) {
+            alert(e.response?.data?.message || 'Failed to report');
+        }
+    };
+
     const combinedAvg = (r: Review) => {
         const parts: number[] = [];
         const lead = r.leadRatings ? Object.values(r.leadRatings) : [];
@@ -125,10 +134,15 @@ const UserDetails: React.FC = () => {
                 ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                         {photos.map(p => (
-                            <div key={p.id} className="rounded overflow-hidden">
+                            <div key={p.id} className="rounded overflow-hidden border">
                                 <div className="w-full" style={{ aspectRatio: '4 / 3' }}>
                                     <img src={p.largeUrl || p.mediumUrl} alt="" className="w-full h-full object-contain" />
                                 </div>
+                                {me && (
+                                    <div className="p-2 text-right">
+                                        <button className="text-sm text-red-600 hover:underline" onClick={() => reportUserPhoto(p.id)}>Report</button>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>

@@ -34,7 +34,8 @@ public class ReportsController : ControllerBase
         var currentUser = await _userManager.GetUserAsync(User);
         if (currentUser == null) return Unauthorized();
 
-        if (dto.TargetType != "Review" && dto.TargetType != "Photo" && dto.TargetType != "EventReview")
+        var allowed = new[] { "Review", "EventReview", "Photo", "UserPhoto", "EventPhoto" };
+        if (!allowed.Contains(dto.TargetType))
             return BadRequest(new { success = false, message = "Invalid target type" });
 
         var report = new Report
