@@ -430,3 +430,5 @@ appsettings.Production.json
 
 # Uploads
 wwwroot/uploads/
+/BachataFeedback.Seeder/seed-media
+/seed-media

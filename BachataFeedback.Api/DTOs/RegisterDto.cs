@@ -65,10 +65,10 @@ public class UpdateProfileDto
 
     public DateTime? StartDancingDate { get; set; }
 
-    [MaxLength(20)]
+    [MaxLength(50)]
     public string? SelfAssessedLevel { get; set; }
 
-    [MaxLength(200)]
+    [MaxLength(500)]
     public string? Bio { get; set; }
 
     [MaxLength(500)]
