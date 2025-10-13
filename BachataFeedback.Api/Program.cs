@@ -7,8 +7,8 @@ using BachataFeedback.Api.Services.Images;
 using BachataFeedback.Api.Services.Moderation;
 using BachataFeedback.Api.Services.Storage;
 using BachataFeedback.Core.Models;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -16,6 +16,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -100,19 +101,74 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOnly", policy => policy.RequireRole(SystemRoles.Admin));
 });
 
+var allowedOrigins = new[]
+{
+    "https://bachata.alexei.site",
+    "https://api-bachata.alexei.site",
+    "http://localhost:3000",
+    "http://localhost:5000"
+};
+
 builder.Services.AddRateLimiter(options =>
 {
-    options.AddFixedWindowLimiter("auth", opt =>
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Единый обработчик отклонённых запросов (проставляем CORS и JSON)
+    options.OnRejected = async (context, token) =>
     {
-        opt.PermitLimit = 10; // до 10 запросов
-        opt.Window = TimeSpan.FromMinutes(1);
-        opt.QueueLimit = 0;
+        var http = context.HttpContext;
+        http.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+
+        // Проставим CORS-заголовки вручную, чтобы браузер не ругался
+        var origin = http.Request.Headers["Origin"].ToString();
+        if (!string.IsNullOrEmpty(origin) &&
+            allowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase))
+        {
+            http.Response.Headers["Access-Control-Allow-Origin"] = origin;
+            http.Response.Headers["Vary"] = "Origin";
+            http.Response.Headers["Access-Control-Allow-Credentials"] = "true";
+            // Чтобы фронт мог прочитать заголовок (если решите добавить), можно экспонировать:
+            http.Response.Headers["Access-Control-Expose-Headers"] = "Retry-After";
+        }
+
+        http.Response.ContentType = "application/json";
+        await http.Response.WriteAsync(
+            System.Text.Json.JsonSerializer.Serialize(new { success = false, message = "Too many requests" }),
+            token);
+    };
+
+    // Политика для /auth — исключаем OPTIONS, лимитируем по IP
+    options.AddPolicy("auth", http =>
+    {
+        if (HttpMethods.IsOptions(http.Request.Method))
+            return RateLimitPartition.GetNoLimiter("preflight-auth");
+
+        var key = http.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: key,
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            });
     });
-    options.AddFixedWindowLimiter("reports", opt =>
+
+    // Политика для /reports — аналогично, исключаем OPTIONS
+    options.AddPolicy("reports", http =>
     {
-        opt.PermitLimit = 30; // до 30 репортов/мин на IP
-        opt.Window = TimeSpan.FromMinutes(1);
-        opt.QueueLimit = 0;
+        if (HttpMethods.IsOptions(http.Request.Method))
+            return RateLimitPartition.GetNoLimiter("preflight-reports");
+
+        var key = http.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: key,
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            });
     });
 });
 
@@ -180,11 +236,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
-        policy.WithOrigins(
-                "https://bachata.alexei.site",
-                "https://api-bachata.alexei.site",
-                "http://localhost:3000",
-                "http://localhost:5000")
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -192,7 +244,6 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
-app.UseRateLimiter();
 
 // Migrate
 using (var scope = app.Services.CreateScope())
@@ -214,6 +265,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("Frontend");
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
