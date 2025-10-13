@@ -3,10 +3,12 @@ using BachataFeedback.Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace BachataFeedback.Api.Controllers;
 
 [ApiController]
+[EnableRateLimiting("reports")]
 [Route("api/[controller]")]
 [Authorize]
 public class ReportsController : ControllerBase

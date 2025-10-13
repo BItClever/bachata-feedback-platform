@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -99,6 +100,22 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOnly", policy => policy.RequireRole(SystemRoles.Admin));
 });
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("auth", opt =>
+    {
+        opt.PermitLimit = 10; // до 10 запросов
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueLimit = 0;
+    });
+    options.AddFixedWindowLimiter("reports", opt =>
+    {
+        opt.PermitLimit = 30; // до 30 репортов/мин на IP
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueLimit = 0;
+    });
+});
+
 builder.Services.AddTransient<IClaimsTransformation, RolePermissionsClaimsTransformation>();
 
 // Services
@@ -175,6 +192,7 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+app.UseRateLimiter();
 
 // Migrate
 using (var scope = app.Services.CreateScope())

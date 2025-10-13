@@ -3,10 +3,12 @@ using BachataFeedback.Api.Services;
 using BachataFeedback.Core.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace BachataFeedback.Api.Controllers;
 
 [ApiController]
+[EnableRateLimiting("auth")]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
