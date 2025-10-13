@@ -17,13 +17,15 @@ public class AdminController : ControllerBase
     private readonly UserManager<User> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IStorageService _storage;
+    private readonly IConfiguration _cfg;
 
-    public AdminController(ApplicationDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IStorageService storage)
+    public AdminController(ApplicationDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IStorageService storage, IConfiguration cfg)
     {
         _context = context;
         _userManager = userManager;
         _roleManager = roleManager;
         _storage = storage;
+        _cfg = cfg;
     }
 
     [HttpGet("users")]
@@ -306,6 +308,19 @@ public class AdminController : ControllerBase
     [AllowAnonymous] // Только для первоначальной настройки
     public async Task<IActionResult> CreateAdmin([FromBody] CreateAdminDto model)
     {
+        var setupEnabled = _cfg.GetValue<bool?>("Setup:EnableCreateAdmin") ?? false;
+        if (!setupEnabled)
+            return Forbid("Admin bootstrap disabled");
+
+        var required = _cfg.GetValue<string>("Setup:AdminBootstrapToken");
+        if (!string.IsNullOrEmpty(required))
+        {
+            var provided = Request.Headers["X-Setup-Token"].FirstOrDefault()
+            ?? Request.Query["setupToken"].FirstOrDefault();
+            if (!string.Equals(provided, required, StringComparison.Ordinal))
+                return Forbid("Invalid setup token");
+        }
+
         var adminRole = await _roleManager.FindByNameAsync("Admin");
         if (adminRole != null)
         {
