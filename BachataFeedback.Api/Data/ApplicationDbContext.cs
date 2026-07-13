@@ -115,5 +115,37 @@ public class ApplicationDbContext : IdentityDbContext<User>
             .WithMany()
             .HasForeignKey(p => p.UploaderId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // ---- Performance indexes ----
+
+        // Reviews: часто фильтруем по кому адресован отзыв, сортируем по дате
+        builder.Entity<Review>()
+            .HasIndex(r => new { r.RevieweeId, r.CreatedAt })
+            .HasDatabaseName("IX_Reviews_RevieweeId_CreatedAt");
+
+        // Мои оставленные (по автору) + дата
+        builder.Entity<Review>()
+            .HasIndex(r => new { r.ReviewerId, r.CreatedAt })
+            .HasDatabaseName("IX_Reviews_ReviewerId_CreatedAt");
+
+        // EventReviews: отбор по событию + дата
+        builder.Entity<EventReview>()
+            .HasIndex(er => new { er.EventId, er.CreatedAt })
+            .HasDatabaseName("IX_EventReviews_EventId_CreatedAt");
+
+        // Reports: модерация часто ищет все жалобы по цели
+        builder.Entity<Report>()
+            .HasIndex(r => new { r.TargetType, r.TargetId })
+            .HasDatabaseName("IX_Reports_TargetType_TargetId");
+
+        // Фото пользователей: выборка по владельцу
+        builder.Entity<UserPhoto>()
+            .HasIndex(up => up.UserId)
+            .HasDatabaseName("IX_UserPhotos_UserId");
+
+        // Фото событий: выборка по событию
+        builder.Entity<EventPhoto>()
+            .HasIndex(ep => ep.EventId)
+            .HasDatabaseName("IX_EventPhotos_EventId");
     }
 }

@@ -266,6 +266,55 @@ public class EventsController : ControllerBase
         return CreatedAtAction(nameof(GetEvent), new { id = eventEntity.Id }, eventDto);
     }
 
+    [HttpPut("{id}")]
+    [Authorize(Policy = "events.update")]
+    public async Task<IActionResult> UpdateEvent(int id, [FromBody] UpdateEventDto model)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var current = await _userManager.GetUserAsync(User);
+        if (current == null) return Unauthorized();
+
+        var ev = await _context.Events.FirstOrDefaultAsync(e => e.Id == id);
+        if (ev == null) return NotFound();
+
+        var canEdit = ev.CreatedBy == current.Id
+            || User.IsInRole("Admin")
+            || User.IsInRole("Moderator")
+            || User.IsInRole("Organizer");
+        if (!canEdit) return Forbid();
+
+        if (!string.IsNullOrWhiteSpace(model.Name)) ev.Name = model.Name!;
+        if (model.Date.HasValue) ev.Date = model.Date.Value;
+        if (model.Location != null) ev.Location = model.Location;
+        if (model.Description != null) ev.Description = model.Description;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            success = true,
+            message = "Event updated"
+        });
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(Policy = "events.delete")]
+    public async Task<IActionResult> DeleteEvent(int id)
+    {
+        var current = await _userManager.GetUserAsync(User);
+        if (current == null) return Unauthorized();
+
+        var ev = await _context.Events.FirstOrDefaultAsync(e => e.Id == id);
+        if (ev == null) return NotFound();
+
+        // Политика уже требует permission events.delete (обычно только Admin).
+        _context.Events.Remove(ev);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { success = true, message = "Event deleted" });
+    }
+
     [HttpPost("{id}/join")]
     [Authorize]
     public async Task<IActionResult> JoinEvent(int id)
