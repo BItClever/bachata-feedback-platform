@@ -10,17 +10,9 @@ namespace BachataFeedback.Api.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_Reviews_RevieweeId",
-                table: "Reviews");
-
-            migrationBuilder.DropIndex(
-                name: "IX_Reviews_ReviewerId",
-                table: "Reviews");
-
-            migrationBuilder.DropIndex(
-                name: "IX_EventReviews_EventId",
-                table: "EventReviews");
+            // Не удаляем старые индексы — они используются внешними ключами (FK),
+            // и InnoDB не позволяет их дропнуть без дропа самих FK.
+            // Просто добавляем новые составные индексы для производительности.
 
             migrationBuilder.CreateIndex(
                 name: "IX_Reviews_RevieweeId_CreatedAt",
@@ -62,20 +54,7 @@ namespace BachataFeedback.Api.Migrations
                 name: "IX_EventReviews_EventId_CreatedAt",
                 table: "EventReviews");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Reviews_RevieweeId",
-                table: "Reviews",
-                column: "RevieweeId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Reviews_ReviewerId",
-                table: "Reviews",
-                column: "ReviewerId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_EventReviews_EventId",
-                table: "EventReviews",
-                column: "EventId");
+            // Не восстанавливаем старые индексы — они не удалялись в Up.
         }
     }
 }

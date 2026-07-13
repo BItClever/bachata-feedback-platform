@@ -23,27 +23,27 @@ var builder = WebApplication.CreateBuilder(args);
 // Database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-// В design-time используем заглушку, чтобы не падать на недоступной БД
+// Р’ design-time РёСЃРїРѕР»СЊР·СѓРµРј Р·Р°РіР»СѓС€РєСѓ, С‡С‚РѕР±С‹ РЅРµ РїР°РґР°С‚СЊ РЅР° РЅРµРґРѕСЃС‚СѓРїРЅРѕР№ Р‘Р”
 if (IsDesignTime())
 {
-    // Регистрируем DbContext с пустой строкой - он не будет использоваться
-    // EF Tools возьмут контекст из IDesignTimeDbContextFactory
+    // Р РµРіРёСЃС‚СЂРёСЂСѓРµРј DbContext СЃ РїСѓСЃС‚РѕР№ СЃС‚СЂРѕРєРѕР№ - РѕРЅ РЅРµ Р±СѓРґРµС‚ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊСЃСЏ
+    // EF Tools РІРѕР·СЊРјСѓС‚ РєРѕРЅС‚РµРєСЃС‚ РёР· IDesignTimeDbContextFactory
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseMySql("Server=localhost;Database=dummy;",
             new MySqlServerVersion(new Version(8, 0, 36))));
 }
 else
 {
-    // Обычная регистрация для runtime
+    // РћР±С‹С‡РЅР°СЏ СЂРµРіРёСЃС‚СЂР°С†РёСЏ РґР»СЏ runtime
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
-        options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
+        options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 0)),
             mySqlOptions => mySqlOptions.EnableRetryOnFailure(
                 maxRetryCount: 5,
                 maxRetryDelay: TimeSpan.FromSeconds(30),
                 errorNumbersToAdd: null)));
 }
 
-// Функция определения design-time режима
+// Р¤СѓРЅРєС†РёСЏ РѕРїСЂРµРґРµР»РµРЅРёСЏ design-time СЂРµР¶РёРјР°
 static bool IsDesignTime()
 {
     return Environment.GetCommandLineArgs().Any(arg =>
@@ -113,13 +113,13 @@ builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-    // Единый обработчик отклонённых запросов (проставляем CORS и JSON)
+    // Р•РґРёРЅС‹Р№ РѕР±СЂР°Р±РѕС‚С‡РёРє РѕС‚РєР»РѕРЅС‘РЅРЅС‹С… Р·Р°РїСЂРѕСЃРѕРІ (РїСЂРѕСЃС‚Р°РІР»СЏРµРј CORS Рё JSON)
     options.OnRejected = async (context, token) =>
     {
         var http = context.HttpContext;
         http.Response.StatusCode = StatusCodes.Status429TooManyRequests;
 
-        // Проставим CORS-заголовки вручную, чтобы браузер не ругался
+        // РџСЂРѕСЃС‚Р°РІРёРј CORS-Р·Р°РіРѕР»РѕРІРєРё РІСЂСѓС‡РЅСѓСЋ, С‡С‚РѕР±С‹ Р±СЂР°СѓР·РµСЂ РЅРµ СЂСѓРіР°Р»СЃСЏ
         var origin = http.Request.Headers["Origin"].ToString();
         if (!string.IsNullOrEmpty(origin) &&
             allowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase))
@@ -127,7 +127,7 @@ builder.Services.AddRateLimiter(options =>
             http.Response.Headers["Access-Control-Allow-Origin"] = origin;
             http.Response.Headers["Vary"] = "Origin";
             http.Response.Headers["Access-Control-Allow-Credentials"] = "true";
-            // Чтобы фронт мог прочитать заголовок (если решите добавить), можно экспонировать:
+            // Р§С‚РѕР±С‹ С„СЂРѕРЅС‚ РјРѕРі РїСЂРѕС‡РёС‚Р°С‚СЊ Р·Р°РіРѕР»РѕРІРѕРє (РµСЃР»Рё СЂРµС€РёС‚Рµ РґРѕР±Р°РІРёС‚СЊ), РјРѕР¶РЅРѕ СЌРєСЃРїРѕРЅРёСЂРѕРІР°С‚СЊ:
             http.Response.Headers["Access-Control-Expose-Headers"] = "Retry-After";
         }
 
@@ -137,7 +137,7 @@ builder.Services.AddRateLimiter(options =>
             token);
     };
 
-    // Политика для /auth — исключаем OPTIONS, лимитируем по IP
+    // РџРѕР»РёС‚РёРєР° РґР»СЏ /auth вЂ” РёСЃРєР»СЋС‡Р°РµРј OPTIONS, Р»РёРјРёС‚РёСЂСѓРµРј РїРѕ IP
     options.AddPolicy("auth", http =>
     {
         if (HttpMethods.IsOptions(http.Request.Method))
@@ -154,7 +154,7 @@ builder.Services.AddRateLimiter(options =>
             });
     });
 
-    // Политика для /reports — аналогично, исключаем OPTIONS
+    // РџРѕР»РёС‚РёРєР° РґР»СЏ /reports вЂ” Р°РЅР°Р»РѕРіРёС‡РЅРѕ, РёСЃРєР»СЋС‡Р°РµРј OPTIONS
     options.AddPolicy("reports", http =>
     {
         if (HttpMethods.IsOptions(http.Request.Method))

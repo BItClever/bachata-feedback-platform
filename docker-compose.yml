@@ -83,9 +83,11 @@ services:
       minio:
         condition: service_started
       minio-setup:
-        condition: service_started
+        condition: service_completed_successfully
       clamav:
         condition: service_started
+    volumes:
+      - dataprotection_keys:/home/app/.aspnet/DataProtection-Keys
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
@@ -146,6 +148,15 @@ services:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
 
+  frontend:
+    image: nginx:alpine
+    container_name: bachata_frontend
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend/build:/usr/share/nginx/html:ro
+    restart: unless-stopped
+
   # Опционально: Adminer для быстрого просмотра БД
   adminer:
     image: adminer
@@ -189,3 +200,4 @@ volumes:
   mysql_data:
   minio_data:
   rabbitmq_data:
+  dataprotection_keys:
