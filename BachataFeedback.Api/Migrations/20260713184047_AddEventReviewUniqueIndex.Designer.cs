@@ -4,6 +4,7 @@ using BachataFeedback.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BachataFeedback.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260713184047_AddEventReviewUniqueIndex")]
+    partial class AddEventReviewUniqueIndex
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -460,13 +463,6 @@ namespace BachataFeedback.Api.Migrations
                     b.Property<DateTime?>("StartDancingDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<long?>("TelegramId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("TelegramUsername")
-                        .HasMaxLength(64)
-                        .HasColumnType("varchar(64)");
-
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("tinyint(1)");
 
@@ -482,11 +478,6 @@ namespace BachataFeedback.Api.Migrations
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
-
-                    b.HasIndex("TelegramId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Users_TelegramId_Unique")
-                        .HasFilter("[TelegramId] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });

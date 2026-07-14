@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authAPI, User, usersAPI } from '../services/api';
+import { authAPI, telegramAuthAPI, User } from '../services/api';
 
 interface RegisterData {
   firstName: string;
@@ -9,10 +9,22 @@ interface RegisterData {
   nickname?: string;
 }
 
+/** Данные, которые прилетают от Telegram Login Widget */
+export interface TelegramAuthData {
+  id: number;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+  photo_url?: string;
+  auth_date: number;
+  hash: string;
+}
+
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithTelegram: (data: TelegramAuthData) => Promise<{ isNewUser: boolean }>;
   register: (userData: RegisterData) => Promise<void>;
   logout: () => void;
   updateUserData: (userData: User) => void;
@@ -28,56 +40,56 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-useEffect(() => {
-  const initializeAuth = async () => {
-    const token = localStorage.getItem('token');
-    const stored = localStorage.getItem('user');
-    // Предзаполняем пользователя из localStorage, чтобы уменьшить «мерцание»
-    if (token && stored) {
-      try { setUser(JSON.parse(stored)); } catch {}
-    }
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const token = localStorage.getItem('token');
+      const stored = localStorage.getItem('user');
+      // Предзаполняем пользователя из localStorage, чтобы уменьшить «мерцание»
+      if (token && stored) {
+        try { setUser(JSON.parse(stored)); } catch {}
+      }
 
-    if (token) {
-      try {
-        const response = await authAPI.getCurrentUser()
-        setUser(response.data);
-        localStorage.setItem('user', JSON.stringify(response.data));
-      } catch (error: any) {
-        const status = error?.response?.status;
-        if (status === 401) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          setUser(null);
-        } else {
-          // не чистим токен на случайной ошибке сети
-          console.log('Failed to load user from token (non-401):', error);
+      if (token) {
+        try {
+          const response = await authAPI.getCurrentUser();
+          setUser(response.data);
+          localStorage.setItem('user', JSON.stringify(response.data));
+        } catch (error: any) {
+          const status = error?.response?.status;
+          if (status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setUser(null);
+          }
+          // На ошибке сети не чистим токен — это может быть временная недоступность
         }
       }
-    }
-    setIsLoading(false);
-  };
+      setIsLoading(false);
+    };
 
-  initializeAuth();
-}, []);
+    initializeAuth();
+  }, []);
 
   const login = async (email: string, password: string) => {
     const response = await authAPI.login({ email, password });
     const { token, user: userData } = response.data;
-    
-    console.log('Login successful, token:', token ? 'received' : 'not received');
-    console.log('User data:', userData);
-    
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
   };
 
+  const loginWithTelegram = async (data: TelegramAuthData): Promise<{ isNewUser: boolean }> => {
+    const response = await telegramAuthAPI.callback(data);
+    const { token, user: userData, isNewUser } = response.data;
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
+    return { isNewUser };
+  };
+
   const register = async (userData: RegisterData) => {
     const response = await authAPI.register(userData);
     const { token, user: newUser } = response.data;
-    
-    console.log('Registration successful, token:', token ? 'received' : 'not received');
-    
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(newUser));
     setUser(newUser);
@@ -87,7 +99,6 @@ useEffect(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
-    console.log('User logged out');
   };
 
   const updateUserData = (userData: User) => {
@@ -96,13 +107,14 @@ useEffect(() => {
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
+    <AuthContext.Provider value={{
+      user,
       isLoading,
-      login, 
-      register, 
-      logout, 
-      updateUserData 
+      login,
+      loginWithTelegram,
+      register,
+      logout,
+      updateUserData
     }}>
       {children}
     </AuthContext.Provider>

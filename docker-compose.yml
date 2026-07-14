@@ -108,6 +108,9 @@ services:
       Uploads__AllowedTypes__0: image/jpeg
       Uploads__AllowedTypes__1: image/png
       Uploads__AllowedTypes__2: image/webp
+      # Telegram Login Widget
+      Telegram__BotToken: "${TELEGRAM_BOT_TOKEN:-}"
+      Telegram__BotName: "${TELEGRAM_BOT_NAME:-}"
       # RabbitMQ для API (продюсер очереди)
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Port: 5672

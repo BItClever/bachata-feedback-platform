@@ -31,6 +31,9 @@ public class AdminController : ControllerBase
     [HttpGet("users")]
     public async Task<IActionResult> GetAllUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
+        if (page < 1) page = 1;
+        if (pageSize < 1 || pageSize > 100) pageSize = 20;
+
         var users = await _context.Users
             .Select(u => new
             {

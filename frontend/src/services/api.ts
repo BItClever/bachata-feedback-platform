@@ -30,9 +30,10 @@ function resolveApiBaseUrl(): string {
 
 const API_BASE_URL = resolveApiBaseUrl();
 
-// Для отладки — сразу видно, куда реально пойдут запросы
-(window as any).__API_BASE_URL = API_BASE_URL;
-console.log('[api] BASE_URL =', API_BASE_URL);
+// В dev-режиме показываем, куда идут запросы
+if (process.env.NODE_ENV === 'development') {
+  console.log('[api] BASE_URL =', API_BASE_URL);
+}
 
 // Создаем экземпляр axios
 const api = axios.create({
@@ -67,7 +68,8 @@ api.interceptors.response.use(
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = '/login';
-        return;
+        // Возвращаем отклоненный Promise, чтобы не было «hanging» цепочек
+        return Promise.reject(error);
       }
     }
     return Promise.reject(error);
@@ -198,6 +200,11 @@ export const authAPI = {
 
 export const usersAPI = {
   getUsers: () => api.get<User[]>('/users'),
+  getUsersPaged: (params: { page?: number; pageSize?: number; search?: string }) =>
+    api.get<{ items: User[]; total: number; page: number; pageSize: number; totalPages: number }>(
+      '/users/paged',
+      { params }
+    ),
   getUser: (id: string) => api.get<User>(`/users/${id}`),
   getCurrentUser: () => api.get<User>('/users/me'),
   updateUser: (id: string, data: Partial<User>) => api.put<User>(`/users/${id}`, data),
@@ -212,12 +219,33 @@ export const reviewsAPI = {
 
 export const eventsAPI = {
   getEvents: () => api.get<Event[]>('/events'),
+  getEventsPaged: (params: { page?: number; pageSize?: number; search?: string }) =>
+    api.get<{ items: Event[]; total: number; page: number; pageSize: number; totalPages: number }>(
+      '/events/paged',
+      { params }
+    ),
   getEvent: (id: number) => api.get<Event>(`/events/${id}`),
   createEvent: (data: { name: string; description?: string; date: string; location?: string; }) => api.post<Event>('/events', data),
   updateEvent: (id: number, data: Partial<Event>) => api.put<Event>(`/events/${id}`, data),
   deleteEvent: (id: number) => api.delete(`/events/${id}`),
   joinEvent: (id: number) => api.post(`/events/${id}/join`),
   leaveEvent: (id: number) => api.post(`/events/${id}/leave`),
+  uploadCover: (eventId: number, file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api.post(`/events/${eventId}/cover`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+  getPhotos: (eventId: number) =>
+    api.get<{ id: number; smallUrl: string; mediumUrl: string; largeUrl: string; uploadedAt: string }[]>(
+      `/events/${eventId}/photos`
+    ),
+  uploadPhotos: (eventId: number, files: FileList | File[]) => {
+    const fd = new FormData();
+    Array.from(files).forEach(f => fd.append('files', f));
+    return api.post(`/events/${eventId}/photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+  deletePhoto: (eventId: number, photoId: number) =>
+    api.delete(`/events/${eventId}/photos/${photoId}`),
 };
 
 export const eventReviewsAPI = {
@@ -271,13 +299,8 @@ export const userPhotosAPI = {
   delete: (photoId: number) => api.delete(`/userphotos/me/${photoId}`),
 };
 
-export const eventsAPIEx = {
-  uploadCover: (eventId: number, file: File) => {
-    const fd = new FormData();
-    fd.append('file', file);
-    return api.post(`/events/${eventId}/cover`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-  },
-};
+/** @deprecated Use eventsAPI.uploadCover instead */
+export const eventsAPIEx = eventsAPI;
 
 export const moderationAdminAPI = {
   getJobs: () => api.get('/admin/moderation/jobs'),
@@ -304,39 +327,42 @@ export const statsAPI = {
   get: () => api.get<{ totalUsers: number; totalReviews: number; totalEventReviews: number; totalEvents: number }>('/stats'),
 };
 
-export const usersAPIEx = {
-  getUsersPaged: (params: { page?: number; pageSize?: number; search?: string }) =>
-    api.get<{ items: User[]; total: number; page: number; pageSize: number; totalPages: number }>(
-      '/users/paged',
-      { params }
-    ),
-};
+/** @deprecated Use usersAPI.getUsersPaged instead */
+export const usersAPIEx = usersAPI;
 
-export const eventsAPIEx2 = {
-  getEventsPaged: (params: { page?: number; pageSize?: number; search?: string }) =>
-    api.get<{ items: Event[]; total: number; page: number; pageSize: number; totalPages: number }>(
-      '/events/paged',
-      { params }
-    ),
-};
+/** @deprecated Use eventsAPI.getEventsPaged instead */
+export const eventsAPIEx2 = eventsAPI;
 
+/** @deprecated Use eventsAPI.getPhotos / eventsAPI.uploadPhotos / eventsAPI.deletePhoto instead */
 export const eventPhotosAPI = {
-  list: (eventId: number) =>
-    api.get<{ id: number; smallUrl: string; mediumUrl: string; largeUrl: string; uploadedAt: string }[]>(
-      `/events/${eventId}/photos`
-    ),
-  upload: (eventId: number, file: File) => {
-    const fd = new FormData();
-    fd.append('file', file);
-    return api.post(`/events/${eventId}/photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-  },
-  uploadMany: (eventId: number, files: FileList | File[]) => {
-    const fd = new FormData();
-    Array.from(files).forEach(f => fd.append('files', f));
-    return api.post(`/events/${eventId}/photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-  },
-  delete: (eventId: number, photoId: number) =>
-    api.delete(`/events/${eventId}/photos/${photoId}`),
+  list: eventsAPI.getPhotos,
+  upload: (eventId: number, file: File) => eventsAPI.uploadPhotos(eventId, [file]),
+  uploadMany: eventsAPI.uploadPhotos,
+  delete: eventsAPI.deletePhoto,
+};
+
+export const telegramAuthAPI = {
+  callback: (data: {
+    id: number;
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+    photo_url?: string;
+    auth_date: number;
+    hash: string;
+  }) => api.post<{ success: boolean; token: string; isNewUser: boolean; user: User }>(
+    '/auth/telegram/callback',
+    {
+      id: data.id,
+      firstName: data.first_name,
+      lastName: data.last_name,
+      username: data.username,
+      photoUrl: data.photo_url,
+      authDate: data.auth_date,
+      hash: data.hash,
+    }
+  ),
+  getBotName: () => api.get<{ botName: string }>('/auth/telegram/bot-name'),
 };
 
 export const adminReportsAPI = {

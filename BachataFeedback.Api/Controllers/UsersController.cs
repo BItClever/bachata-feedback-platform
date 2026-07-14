@@ -27,75 +27,10 @@ public class UsersController : ControllerBase
     public async Task<ActionResult<IEnumerable<UserProfileDto>>> GetUsers()
     {
         var users = await _userService.GetActiveUsersAsync();
-        string BaseUrl(HttpRequest req) => $"{req.Scheme}://{req.Host}";
-        var baseUrl = BaseUrl(Request);
-
-        string? Build(string userId, string? mainPhotoPath, string size)
-        {
-            if (string.IsNullOrEmpty(mainPhotoPath)) return null;
-            var parts = mainPhotoPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length < 3) return null;
-            var photoIdStr = parts[2];
-            if (!int.TryParse(photoIdStr, out var photoId)) return null;
-            return $"{baseUrl}/api/files/users/{userId}/photos/{photoId}/{size}";
-        }
-
+        var baseUrl = BuildBaseUrl(Request);
         var ids = users.Select(u => u.Id).ToHashSet();
-        var reviews = await _db.Reviews
-            .Where(r => ids.Contains(r.RevieweeId) && r.ModerationLevel != ModerationLevel.Red && r.ModerationLevel != ModerationLevel.Pending)
-            .Select(r => new { r.RevieweeId, r.ReviewerId, r.LeadRatings, r.FollowRatings })
-            .ToListAsync();
 
-        var mainPhotoFocus = await _db.UserPhotos
-            .AsNoTracking()
-            .Where(p => ids.Contains(p.UserId) && p.IsMain)
-            .Select(p => new { p.UserId, p.FocusX, p.FocusY })
-            .ToListAsync();
-
-        var focusMap = mainPhotoFocus.ToDictionary(x => x.UserId, x => new { x.FocusX, x.FocusY });
-
-        var grouped = reviews.GroupBy(r => r.RevieweeId).ToDictionary(
-            g => g.Key,
-            g =>
-            {
-                // простой средний (только те отзывы, где есть хотя бы одна оценка)
-                var perReview = g.Select(x =>
-                {
-                    var a = AvgDict(x.LeadRatings);
-                    var b = AvgDict(x.FollowRatings);
-                    var parts = new List<double>();
-                    if (!double.IsNaN(a)) parts.Add(a);
-                    if (!double.IsNaN(b)) parts.Add(b);
-                    return parts.Count > 0 ? parts.Average() : double.NaN;
-                }).ToArray();
-
-                var starsOnly = perReview.Where(v => !double.IsNaN(v)).ToArray();
-                var avg = starsOnly.Length > 0 ? starsOnly.Average() : double.NaN;
-
-                // взвешенное «по авторам»
-                var byAuthor = g.GroupBy(x => x.ReviewerId).Select(ga =>
-                {
-                    var authorReviews = ga.Select(x =>
-                    {
-                        var a = AvgDict(x.LeadRatings);
-                        var b = AvgDict(x.FollowRatings);
-                        var parts = new List<double>();
-                        if (!double.IsNaN(a)) parts.Add(a);
-                        if (!double.IsNaN(b)) parts.Add(b);
-                        return parts.Count > 0 ? parts.Average() : double.NaN;
-                    }).Where(v => !double.IsNaN(v)).ToArray();
-
-                    return authorReviews.Length > 0 ? authorReviews.Average() : double.NaN;
-                }).Where(v => !double.IsNaN(v)).ToArray();
-
-                var avgUnique = byAuthor.Length > 0 ? byAuthor.Average() : double.NaN;
-                return new
-                {
-                    count = g.Count(), // всего отзывов (включая текстовые)
-                    avg = double.IsNaN(avg) ? (double?)null : Math.Round(avg, 2),
-                    avgUnique = double.IsNaN(avgUnique) ? (double?)null : Math.Round(avgUnique, 2)
-                };
-            });
+        var (grouped, focusMap) = await LoadRatingStatsAndFocus(ids);
 
         var result = users.Select(u =>
         {
@@ -103,7 +38,7 @@ public class UsersController : ControllerBase
             return new
             {
                 u.Id,
-                u.Email,
+                // Email намеренно исключён из публичного списка (утечка PII)
                 u.FirstName,
                 u.LastName,
                 u.Nickname,
@@ -113,14 +48,14 @@ public class UsersController : ControllerBase
                 u.DanceStyles,
                 u.CreatedAt,
                 u.DancerRole,
-                mainPhotoSmallUrl = Build(u.Id, u.MainPhotoPath, "small"),
-                mainPhotoMediumUrl = Build(u.Id, u.MainPhotoPath, "medium"),
-                mainPhotoLargeUrl = Build(u.Id, u.MainPhotoPath, "large"),
+                mainPhotoSmallUrl = BuildPhotoUrl(baseUrl, u.Id, u.MainPhotoPath, "small"),
+                mainPhotoMediumUrl = BuildPhotoUrl(baseUrl, u.Id, u.MainPhotoPath, "medium"),
+                mainPhotoLargeUrl = BuildPhotoUrl(baseUrl, u.Id, u.MainPhotoPath, "large"),
                 mainPhotoFocusX = focusMap.TryGetValue(u.Id, out var f) ? (float?)f.FocusX : null,
                 mainPhotoFocusY = focusMap.TryGetValue(u.Id, out var f2) ? (float?)f2.FocusY : null,
                 reviewsReceivedCount = stat?.count ?? 0,
-                avgRating = stat?.avg,         // обычное среднее по звёздам
-                avgRatingUnique = stat?.avgUnique // среднее по авторам
+                avgRating = stat?.avg,
+                avgRatingUnique = stat?.avgUnique
             };
         });
 
@@ -128,12 +63,14 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("paged")]
-    public async Task<IActionResult> GetUsersPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null)
+    public async Task<IActionResult> GetUsersPaged(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null)
     {
         if (page < 1) page = 1;
         if (pageSize < 1 || pageSize > 100) pageSize = 20;
 
-        // Базовый запрос по активным пользователям с фильтром
         var q = _db.Users.AsNoTracking().Where(u => u.IsActive);
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -142,8 +79,8 @@ public class UsersController : ControllerBase
             q = q.Where(u =>
                 u.FirstName.ToLower().Contains(s) ||
                 u.LastName.ToLower().Contains(s) ||
-                (u.Nickname != null && u.Nickname.ToLower().Contains(s)) ||
-                (u.Email != null && u.Email.ToLower().Contains(s))
+                (u.Nickname != null && u.Nickname.ToLower().Contains(s))
+                // Email исключён из публичного поиска
             );
         }
 
@@ -156,7 +93,7 @@ public class UsersController : ControllerBase
             .Select(u => new
             {
                 u.Id,
-                u.Email,
+                // Email намеренно исключён из публичного ответа (утечка PII)
                 u.FirstName,
                 u.LastName,
                 u.Nickname,
@@ -170,79 +107,9 @@ public class UsersController : ControllerBase
             })
             .ToListAsync();
 
-        // Построим URLы фото (как в /users)
-        string BaseUrl(HttpRequest req) => $"{req.Scheme}://{req.Host}";
-        var baseUrl = BaseUrl(Request);
-
-        string? Build(string userId, string? mainPhotoPath, string size)
-        {
-            if (string.IsNullOrEmpty(mainPhotoPath)) return null;
-            var parts = mainPhotoPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length < 3) return null;
-            var photoIdStr = parts[2];
-            if (!int.TryParse(photoIdStr, out var photoId)) return null;
-            return $"{baseUrl}/api/files/users/{userId}/photos/{photoId}/{size}";
-        }
-
-        // Агрегаты по рейтингам — как в существующем /users
+        var baseUrl = BuildBaseUrl(Request);
         var ids = pageUsers.Select(u => u.Id).ToHashSet();
-
-        // Исключим Red из агрегатов (как в /users); Pending можно тоже исключить
-        var reviews = await _db.Reviews
-            .Where(r => ids.Contains(r.RevieweeId) && r.ModerationLevel != ModerationLevel.Red && r.ModerationLevel != ModerationLevel.Pending)
-            .Select(r => new { r.RevieweeId, r.ReviewerId, r.LeadRatings, r.FollowRatings })
-            .ToListAsync();
-
-        var mainPhotoFocus = await _db.UserPhotos
-            .AsNoTracking()
-            .Where(p => ids.Contains(p.UserId) && p.IsMain)
-            .Select(p => new { p.UserId, p.FocusX, p.FocusY })
-            .ToListAsync();
-
-        var focusMap = mainPhotoFocus.ToDictionary(x => x.UserId, x => new { x.FocusX, x.FocusY });
-
-        var grouped = reviews.GroupBy(r => r.RevieweeId).ToDictionary(
-            g => g.Key,
-            g =>
-            {
-                // средняя по каждому отзыву (если есть lead/follow звёзды)
-                var perReview = g.Select(x =>
-                {
-                    var a = AvgDict(x.LeadRatings);
-                    var b = AvgDict(x.FollowRatings);
-                    var parts = new List<double>();
-                    if (!double.IsNaN(a)) parts.Add(a);
-                    if (!double.IsNaN(b)) parts.Add(b);
-                    return parts.Count > 0 ? parts.Average() : double.NaN;
-                }).ToArray();
-
-                var starsOnly = perReview.Where(v => !double.IsNaN(v)).ToArray();
-                var avg = starsOnly.Length > 0 ? starsOnly.Average() : double.NaN;
-
-                // взвешенное «по авторам»
-                var byAuthor = g.GroupBy(x => x.ReviewerId).Select(ga =>
-                {
-                    var authorReviews = ga.Select(x =>
-                    {
-                        var a = AvgDict(x.LeadRatings);
-                        var b = AvgDict(x.FollowRatings);
-                        var parts = new List<double>();
-                        if (!double.IsNaN(a)) parts.Add(a);
-                        if (!double.IsNaN(b)) parts.Add(b);
-                        return parts.Count > 0 ? parts.Average() : double.NaN;
-                    }).Where(v => !double.IsNaN(v)).ToArray();
-
-                    return authorReviews.Length > 0 ? authorReviews.Average() : double.NaN;
-                }).Where(v => !double.IsNaN(v)).ToArray();
-
-                var avgUnique = byAuthor.Length > 0 ? byAuthor.Average() : double.NaN;
-                return new
-                {
-                    count = g.Count(), // всего отзывов (включая текстовые)
-                    avg = double.IsNaN(avg) ? (double?)null : Math.Round(avg, 2),
-                    avgUnique = double.IsNaN(avgUnique) ? (double?)null : Math.Round(avgUnique, 2)
-                };
-            });
+        var (grouped, focusMap) = await LoadRatingStatsAndFocus(ids);
 
         var items = pageUsers.Select(u =>
         {
@@ -250,7 +117,6 @@ public class UsersController : ControllerBase
             return new
             {
                 u.Id,
-                u.Email,
                 u.FirstName,
                 u.LastName,
                 u.Nickname,
@@ -260,9 +126,9 @@ public class UsersController : ControllerBase
                 u.DanceStyles,
                 u.CreatedAt,
                 u.DancerRole,
-                mainPhotoSmallUrl = Build(u.Id, u.MainPhotoPath, "small"),
-                mainPhotoMediumUrl = Build(u.Id, u.MainPhotoPath, "medium"),
-                mainPhotoLargeUrl = Build(u.Id, u.MainPhotoPath, "large"),
+                mainPhotoSmallUrl = BuildPhotoUrl(baseUrl, u.Id, u.MainPhotoPath, "small"),
+                mainPhotoMediumUrl = BuildPhotoUrl(baseUrl, u.Id, u.MainPhotoPath, "medium"),
+                mainPhotoLargeUrl = BuildPhotoUrl(baseUrl, u.Id, u.MainPhotoPath, "large"),
                 mainPhotoFocusX = focusMap.TryGetValue(u.Id, out var f) ? (float?)f.FocusX : null,
                 mainPhotoFocusY = focusMap.TryGetValue(u.Id, out var f2) ? (float?)f2.FocusY : null,
                 reviewsReceivedCount = stat?.count ?? 0,
@@ -288,20 +154,7 @@ public class UsersController : ControllerBase
         if (u == null)
             return NotFound(new { message = "User not found" });
 
-        // Построим ссылки на фото (если есть MainPhotoPath)
-        string BaseUrl(HttpRequest req) => $"{req.Scheme}://{req.Host}";
-        var baseUrl = BaseUrl(Request);
-
-        string? Build(string userId, string? mainPhotoPath, string size)
-        {
-            // "users/{userId}/{photoId}/original.jpg" -> /api/files/users/{userId}/photos/{photoId}/{size}
-            if (string.IsNullOrEmpty(mainPhotoPath)) return null;
-            var parts = mainPhotoPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length < 3) return null;
-            var photoIdStr = parts[2];
-            if (!int.TryParse(photoIdStr, out var photoId)) return null;
-            return $"{baseUrl}/api/files/users/{userId}/photos/{photoId}/{size}";
-        }
+        var baseUrl = BuildBaseUrl(Request);
 
         var mainPhotoFocus = await _db.UserPhotos
             .AsNoTracking()
@@ -312,7 +165,7 @@ public class UsersController : ControllerBase
         var result = new
         {
             u.Id,
-            u.Email,
+            // Email намеренно исключён из публичного профиля (утечка PII)
             u.FirstName,
             u.LastName,
             u.Nickname,
@@ -322,9 +175,9 @@ public class UsersController : ControllerBase
             u.DanceStyles,
             u.CreatedAt,
             u.DancerRole,
-            mainPhotoSmallUrl = Build(u.Id, u.MainPhotoPath, "small"),
-            mainPhotoMediumUrl = Build(u.Id, u.MainPhotoPath, "medium"),
-            mainPhotoLargeUrl = Build(u.Id, u.MainPhotoPath, "large"),
+            mainPhotoSmallUrl = BuildPhotoUrl(baseUrl, u.Id, u.MainPhotoPath, "small"),
+            mainPhotoMediumUrl = BuildPhotoUrl(baseUrl, u.Id, u.MainPhotoPath, "medium"),
+            mainPhotoLargeUrl = BuildPhotoUrl(baseUrl, u.Id, u.MainPhotoPath, "large"),
             mainPhotoFocusX = mainPhotoFocus?.FocusX,
             mainPhotoFocusY = mainPhotoFocus?.FocusY,
         };
@@ -363,7 +216,89 @@ public class UsersController : ControllerBase
         return Ok(updated);
     }
 
-    // хелпер: среднее по словарю
+    // --- Private helpers ---
+
+    private static string BuildBaseUrl(HttpRequest req) => $"{req.Scheme}://{req.Host}";
+
+    private static string? BuildPhotoUrl(string baseUrl, string userId, string? mainPhotoPath, string size)
+    {
+        if (string.IsNullOrEmpty(mainPhotoPath)) return null;
+        var parts = mainPhotoPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 3) return null;
+        if (!int.TryParse(parts[2], out var photoId)) return null;
+        return $"{baseUrl}/api/files/users/{userId}/photos/{photoId}/{size}";
+    }
+
+    /// <summary>
+    /// Загружает агрегированные рейтинги и focus-координаты для набора пользователей.
+    /// Выделено во избежание дублирования между GetUsers и GetUsersPaged.
+    /// </summary>
+    private async Task<(
+        Dictionary<string, dynamic> grouped,
+        Dictionary<string, dynamic> focusMap
+    )> LoadRatingStatsAndFocus(HashSet<string> ids)
+    {
+        var reviews = await _db.Reviews
+            .Where(r => ids.Contains(r.RevieweeId)
+                     && r.ModerationLevel != ModerationLevel.Red
+                     && r.ModerationLevel != ModerationLevel.Pending)
+            .Select(r => new { r.RevieweeId, r.ReviewerId, r.LeadRatings, r.FollowRatings })
+            .ToListAsync();
+
+        var mainPhotoFocus = await _db.UserPhotos
+            .AsNoTracking()
+            .Where(p => ids.Contains(p.UserId) && p.IsMain)
+            .Select(p => new { p.UserId, p.FocusX, p.FocusY })
+            .ToListAsync();
+
+        var focusMap = mainPhotoFocus.ToDictionary(
+            x => x.UserId,
+            x => (dynamic)new { x.FocusX, x.FocusY });
+
+        var grouped = reviews.GroupBy(r => r.RevieweeId).ToDictionary(
+            g => g.Key,
+            g =>
+            {
+                var perReview = g.Select(x =>
+                {
+                    var a = AvgDict(x.LeadRatings);
+                    var b = AvgDict(x.FollowRatings);
+                    var vals = new List<double>();
+                    if (!double.IsNaN(a)) vals.Add(a);
+                    if (!double.IsNaN(b)) vals.Add(b);
+                    return vals.Count > 0 ? vals.Average() : double.NaN;
+                }).ToArray();
+
+                var starsOnly = perReview.Where(v => !double.IsNaN(v)).ToArray();
+                var avg = starsOnly.Length > 0 ? starsOnly.Average() : double.NaN;
+
+                var byAuthor = g.GroupBy(x => x.ReviewerId).Select(ga =>
+                {
+                    var authorVals = ga.Select(x =>
+                    {
+                        var a = AvgDict(x.LeadRatings);
+                        var b = AvgDict(x.FollowRatings);
+                        var vals = new List<double>();
+                        if (!double.IsNaN(a)) vals.Add(a);
+                        if (!double.IsNaN(b)) vals.Add(b);
+                        return vals.Count > 0 ? vals.Average() : double.NaN;
+                    }).Where(v => !double.IsNaN(v)).ToArray();
+                    return authorVals.Length > 0 ? authorVals.Average() : double.NaN;
+                }).Where(v => !double.IsNaN(v)).ToArray();
+
+                var avgUnique = byAuthor.Length > 0 ? byAuthor.Average() : double.NaN;
+
+                return (dynamic)new
+                {
+                    count = g.Count(),
+                    avg = double.IsNaN(avg) ? (double?)null : Math.Round(avg, 2),
+                    avgUnique = double.IsNaN(avgUnique) ? (double?)null : Math.Round(avgUnique, 2)
+                };
+            });
+
+        return (grouped, focusMap);
+    }
+
     private static double AvgDict(string? json)
     {
         if (string.IsNullOrWhiteSpace(json)) return double.NaN;

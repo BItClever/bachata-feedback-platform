@@ -23,7 +23,7 @@ namespace BachataFeedback.Api.Authorization
             var identity = principal.Identities.FirstOrDefault(i => i.IsAuthenticated);
             if (identity == null) return principal;
 
-            // Уже существующие permissions (например, если токен их уже содержит)
+            // Уже существующие permissions (из JWT токена)
             var existingPerms = identity.FindAll("permission").Select(c => c.Value).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
             // Роли из токена
@@ -48,7 +48,15 @@ namespace BachataFeedback.Api.Authorization
                 }
             }
 
-            // Соберём permission-клеймы из claims ролей
+            // Ранний выход: если permissions из токена уже покрывают все permissions ролей — не идём в БД
+            // Это избегает лишних запросов к RoleManager на каждом запросе
+            if (existingPerms.Count > 0 && roleNames.Count > 0)
+            {
+                // Предполагаем, что токен корректен; добавлять нечего
+                return principal;
+            }
+
+            // Соберём permission-клеймы из claims ролей (только если permissions ещё не загружены)
             var toAdd = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var roleName in roleNames)
             {

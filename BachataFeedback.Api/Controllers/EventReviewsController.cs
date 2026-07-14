@@ -19,7 +19,10 @@ public class EventReviewsController : ControllerBase
     private readonly UserManager<User> _userManager;
     private readonly IModerationQueue _moderationQueue;
 
-    public EventReviewsController(ApplicationDbContext context, UserManager<User> userManager, IModerationQueue moderationQueue)
+    public EventReviewsController(
+        ApplicationDbContext context,
+        UserManager<User> userManager,
+        IModerationQueue moderationQueue)
     {
         _context = context;
         _userManager = userManager;
@@ -30,6 +33,9 @@ public class EventReviewsController : ControllerBase
     [AllowAnonymous]
     public async Task<ActionResult<IEnumerable<EventReviewDto>>> GetByEvent(int eventId)
     {
+        var requestorId = _userManager.GetUserId(User);
+        var isModerator = User.IsInRole("Admin") || User.IsInRole("Moderator");
+
         var data = await _context.EventReviews
             .Include(er => er.Event)
             .Include(er => er.Reviewer)
@@ -37,42 +43,42 @@ public class EventReviewsController : ControllerBase
             .OrderByDescending(er => er.CreatedAt)
             .ToListAsync();
 
-        var result = data.Select(er => new EventReviewDto
-        {
-            Id = er.Id,
-            EventId = er.EventId,
-            EventName = er.Event.Name,
-            ReviewerId = er.ReviewerId,
-            ReviewerName = er.IsAnonymous ? "Anonymous" : $"{er.Reviewer.FirstName} {er.Reviewer.LastName}",
-            Ratings = SafeDict(er.Ratings),
-            TextReview = er.TextReview,
-            Tags = SafeList(er.Tags),
-            IsAnonymous = er.IsAnonymous,
-            CreatedAt = er.CreatedAt,
-            ModerationLevel = er.ModerationLevel.ToString(),
-            ModerationSource = er.ModerationSource.ToString(),
-            ModeratedAt = er.ModeratedAt,
-            ModerationReason = er.ModerationReason,
-            ModerationReasonRu = er.ModerationReasonRu,
-            ModerationReasonEn = er.ModerationReasonEn,
-        }).ToList();
-
-        var requestorId = _userManager.GetUserId(User);
-        var isModerator = User.IsInRole("Admin") || User.IsInRole("Moderator");
-
-        // 1) Фильтр Pending/Red: только модератор или автор видят такие элементы
-        if (!isModerator)
-        {
-            result = result
-                .Where(r =>
-                {
-                    var level = r.ModerationLevel ?? "Pending";
-                    if (level == "Red" || level == "Pending")
-                        return requestorId != null && r.ReviewerId == requestorId;
+        var result = data
+            .Where(er =>
+            {
+                // Модераторы видят всё
+                if (isModerator) return true;
+                // Green/Yellow видят все; Pending/Red — только автор
+                if (er.ModerationLevel == ModerationLevel.Green || er.ModerationLevel == ModerationLevel.Yellow)
                     return true;
-                })
-                .ToList();
-        }
+                return requestorId != null && er.ReviewerId == requestorId;
+            })
+            .Select(er =>
+            {
+                var dto = new EventReviewDto
+                {
+                    Id = er.Id,
+                    EventId = er.EventId,
+                    EventName = er.Event.Name,
+                    ReviewerId = er.IsAnonymous && er.ReviewerId != requestorId && !isModerator
+                        ? string.Empty
+                        : er.ReviewerId,
+                    ReviewerName = er.IsAnonymous ? "Anonymous" : $"{er.Reviewer.FirstName} {er.Reviewer.LastName}",
+                    Ratings = SafeDict(er.Ratings),
+                    TextReview = er.TextReview,
+                    Tags = SafeList(er.Tags),
+                    IsAnonymous = er.IsAnonymous,
+                    CreatedAt = er.CreatedAt,
+                    ModerationLevel = er.ModerationLevel.ToString(),
+                    ModerationSource = er.ModerationSource.ToString(),
+                    ModeratedAt = er.ModeratedAt,
+                    ModerationReason = er.ModerationReason,
+                    ModerationReasonRu = er.ModerationReasonRu,
+                    ModerationReasonEn = er.ModerationReasonEn,
+                };
+                return dto;
+            })
+            .ToList();
 
         return Ok(result);
     }
@@ -98,12 +104,12 @@ public class EventReviewsController : ControllerBase
         if (!isParticipant)
             return BadRequest(new { success = false, message = "Only event participants can leave a review" });
 
-        static Dictionary<string, int>? SanitizeRatings(Dictionary<string, int>? src)
-        {
-            if (src == null) return null;
-            var filtered = src.Where(kv => kv.Value >= 1 && kv.Value <= 5).ToDictionary(kv => kv.Key, kv => kv.Value);
-            return filtered.Count > 0 ? filtered : null;
-        }
+        // Проверка дубликата: нельзя оставить более одного отзыва на событие
+        var alreadyReviewed = await _context.EventReviews
+            .AnyAsync(r => r.EventId == model.EventId && r.ReviewerId == currentUser.Id);
+
+        if (alreadyReviewed)
+            return BadRequest(new { success = false, message = "You have already reviewed this event" });
 
         var ratings = SanitizeRatings(model.Ratings);
 
@@ -120,7 +126,7 @@ public class EventReviewsController : ControllerBase
         _context.EventReviews.Add(review);
         await _context.SaveChangesAsync();
 
-        // если только рейтинг (без текста) — сразу Green/None
+        // Если только рейтинг (без текста) — сразу Green/None
         bool hasAnyStars = ratings != null && ratings.Count > 0;
         bool hasText = !string.IsNullOrWhiteSpace(model.TextReview);
 
@@ -156,7 +162,7 @@ public class EventReviewsController : ControllerBase
             Id = review.Id,
             EventId = review.EventId,
             EventName = review.Event.Name,
-            ReviewerId = review.ReviewerId,
+            ReviewerId = review.ReviewerId, // автор видит свой ID
             ReviewerName = review.IsAnonymous ? "Anonymous" : $"{currentUser.FirstName} {currentUser.LastName}",
             Ratings = ratings,
             TextReview = review.TextReview,
@@ -173,11 +179,20 @@ public class EventReviewsController : ControllerBase
 
         return CreatedAtAction(nameof(GetByEvent), new { eventId = review.EventId }, dto);
     }
+
+    private static Dictionary<string, int>? SanitizeRatings(Dictionary<string, int>? src)
+    {
+        if (src == null) return null;
+        var filtered = src.Where(kv => kv.Value >= 1 && kv.Value <= 5).ToDictionary(kv => kv.Key, kv => kv.Value);
+        return filtered.Count > 0 ? filtered : null;
+    }
+
     private static Dictionary<string, int>? SafeDict(string? json)
     {
         if (string.IsNullOrWhiteSpace(json)) return null;
         try { return JsonSerializer.Deserialize<Dictionary<string, int>>(json); } catch { return null; }
     }
+
     private static List<string>? SafeList(string? json)
     {
         if (string.IsNullOrWhiteSpace(json)) return null;

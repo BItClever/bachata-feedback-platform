@@ -23,63 +23,84 @@ public class ReviewService : IReviewService
         _context = context;
     }
 
-    private async Task<ReviewDto> MapToReviewDtoWithPrivacyAsync(Review review, string? requestorId, bool isModerator)
-    {
-        var dto = MapToReviewDto(review);
-
-        // Если текущий — владелец профиля (reviewee) — показываем всё
-        if (requestorId != null && review.RevieweeId == requestorId)
-            return dto;
-
-        // Скрываем токсичный/непроверенный контент для посторонних, если не модератор
-        if (!isModerator)
-        {
-            var settings = await _context.UserSettings.FindAsync(review.RevieweeId);
-            bool showRatings = settings?.ShowRatingsToOthers ?? true;
-            bool showText = settings?.ShowTextReviewsToOthers ?? true;
-
-            if (!showRatings)
-            {
-                dto.LeadRatings = null;
-                dto.FollowRatings = null;
-            }
-            if (!showText)
-            {
-                dto.TextReview = null;
-            }
-        }
-
-        return dto;
-    }
-
     public async Task<IEnumerable<ReviewDto>> GetAllReviewsAsync(string? requestorId, bool isModerator = false)
     {
-        var reviewsData = await _context.Reviews
+        var query = _context.Reviews
             .Include(r => r.Reviewer)
             .Include(r => r.Reviewee)
             .Include(r => r.Event)
-            .OrderByDescending(r => r.CreatedAt)
+            .OrderByDescending(r => r.CreatedAt);
+
+        // Модераторы видят всё; остальные — только Green/Yellow + свои Pending/Red
+        List<Review> reviewsData;
+        if (isModerator)
+        {
+            reviewsData = await query.ToListAsync();
+            return reviewsData.Select(MapToReviewDto);
+        }
+
+        reviewsData = await query
+            .Where(r => r.ModerationLevel == ModerationLevel.Green
+                     || r.ModerationLevel == ModerationLevel.Yellow
+                     || r.ReviewerId == requestorId)
             .ToListAsync();
+
+        // Батч-загрузка настроек приватности — исправляет N+1 запросов
+        var revieweeIds = reviewsData.Select(r => r.RevieweeId).Distinct().ToList();
+        var settingsMap = await _context.UserSettings
+            .Where(s => revieweeIds.Contains(s.UserId))
+            .ToDictionaryAsync(s => s.UserId);
 
         var result = new List<ReviewDto>();
         foreach (var r in reviewsData)
-            result.Add(await MapToReviewDtoWithPrivacyAsync(r, requestorId, isModerator));
+        {
+            var dto = MapToReviewDto(r);
+            ApplyAnonymityMask(dto, r, requestorId);
+            ApplyPrivacySettings(dto, r, requestorId, settingsMap);
+            result.Add(dto);
+        }
         return result;
     }
 
     public async Task<IEnumerable<ReviewDto>> GetUserReviewsAsync(string userId, string? requestorId, bool isModerator = false)
     {
-        var reviewsData = await _context.Reviews
+        var query = _context.Reviews
             .Include(r => r.Reviewer)
             .Include(r => r.Reviewee)
             .Include(r => r.Event)
             .Where(r => r.RevieweeId == userId)
-            .OrderByDescending(r => r.CreatedAt)
+            .OrderByDescending(r => r.CreatedAt);
+
+        List<Review> reviewsData;
+        if (isModerator)
+        {
+            reviewsData = await query.ToListAsync();
+            return reviewsData.Select(MapToReviewDto);
+        }
+
+        reviewsData = await query
+            .Where(r => r.ModerationLevel == ModerationLevel.Green
+                     || r.ModerationLevel == ModerationLevel.Yellow
+                     || r.ReviewerId == requestorId)
             .ToListAsync();
+
+        // Для одного userId достаточно одного запроса настроек
+        var settings = await _context.UserSettings.FindAsync(userId);
+        var settingsMap = settings != null
+            ? new Dictionary<string, UserSettings> { [userId] = settings }
+            : new Dictionary<string, UserSettings>();
+
+        bool isOwner = requestorId == userId;
 
         var result = new List<ReviewDto>();
         foreach (var r in reviewsData)
-            result.Add(await MapToReviewDtoWithPrivacyAsync(r, requestorId, isModerator));
+        {
+            var dto = MapToReviewDto(r);
+            ApplyAnonymityMask(dto, r, requestorId);
+            if (!isOwner)
+                ApplyPrivacySettings(dto, r, requestorId, settingsMap);
+            result.Add(dto);
+        }
         return result;
     }
 
@@ -113,29 +134,18 @@ public class ReviewService : IReviewService
                 throw new ApplicationException("Both users must have participated in the event");
         }
 
-        // Ограничение частоты: один не-ивентовый отзыв раз в 24 часа на одного пользователя
-        //if (model.EventId == null)
-        //{
-        //    var dayAgo = DateTime.UtcNow.AddDays(-1);
-        //    var recent = await _context.Reviews
-        //        .Where(r => r.ReviewerId == reviewerId
-        //                 && r.RevieweeId == model.RevieweeId
-        //                 && r.EventId == null
-        //                 && r.CreatedAt >= dayAgo)
-        //        .AnyAsync();
-        //    if (recent)
-        //        throw new ApplicationException("You can leave a non-event review for this user once every 24 hours");
-        //}
-
-        // Санитизация и валидация рейтингов (1..5), игнорируем нули/мусор
-        static Dictionary<string, int>? SanitizeRatings(Dictionary<string, int>? src)
+        // Ограничение частоты: один не-событийный отзыв раз в 24 часа на одного пользователя
+        if (model.EventId == null)
         {
-            if (src == null) return null;
-            var filtered = src
-                .Where(kv => kv.Value >= 1 && kv.Value <= 5)
-                .ToDictionary(kv => kv.Key, kv => kv.Value);
-
-            return filtered.Count > 0 ? filtered : null;
+            var dayAgo = DateTime.UtcNow.AddDays(-1);
+            var recentExists = await _context.Reviews
+                .Where(r => r.ReviewerId == reviewerId
+                         && r.RevieweeId == model.RevieweeId
+                         && r.EventId == null
+                         && r.CreatedAt >= dayAgo)
+                .AnyAsync();
+            if (recentExists)
+                throw new ApplicationException("You can leave a non-event review for this user once every 24 hours");
         }
 
         var lead = SanitizeRatings(model.LeadRatings);
@@ -161,8 +171,7 @@ public class ReviewService : IReviewService
         if (review.EventId.HasValue)
             await _context.Entry(review).Reference(r => r.Event).LoadAsync();
 
-        var reviewDto = MapToReviewDto(review);
-        return reviewDto;
+        return MapToReviewDto(review);
     }
 
     public async Task<bool> CanUserReviewAsync(string reviewerId, string revieweeId, int? eventId)
@@ -176,6 +185,53 @@ public class ReviewService : IReviewService
             .AnyAsync(ep => ep.EventId == eventId.Value && ep.UserId == revieweeId);
 
         return reviewerParticipated && revieweeParticipated;
+    }
+
+    // --- Private helpers ---
+
+    /// <summary>
+    /// Маскирует ReviewerId для анонимных отзывов, если запрашивающий — не автор.
+    /// Предотвращает деанонимизацию через API.
+    /// </summary>
+    private static void ApplyAnonymityMask(ReviewDto dto, Review review, string? requestorId)
+    {
+        if (review.IsAnonymous && review.ReviewerId != requestorId)
+            dto.ReviewerId = string.Empty;
+    }
+
+    /// <summary>
+    /// Применяет настройки приватности reviewee: скрывает рейтинги/текст по его настройкам.
+    /// Вызывать только для не-модераторов и не-владельцев профиля.
+    /// </summary>
+    private static void ApplyPrivacySettings(
+        ReviewDto dto,
+        Review review,
+        string? requestorId,
+        Dictionary<string, UserSettings> settingsMap)
+    {
+        // Владелец профиля всегда видит всё о своих отзывах
+        if (review.RevieweeId == requestorId)
+            return;
+
+        if (!settingsMap.TryGetValue(review.RevieweeId, out var settings))
+            return;
+
+        if (!settings.ShowRatingsToOthers)
+        {
+            dto.LeadRatings = null;
+            dto.FollowRatings = null;
+        }
+        if (!settings.ShowTextReviewsToOthers)
+            dto.TextReview = null;
+    }
+
+    private static Dictionary<string, int>? SanitizeRatings(Dictionary<string, int>? src)
+    {
+        if (src == null) return null;
+        var filtered = src
+            .Where(kv => kv.Value >= 1 && kv.Value <= 5)
+            .ToDictionary(kv => kv.Key, kv => kv.Value);
+        return filtered.Count > 0 ? filtered : null;
     }
 
     private static ReviewDto MapToReviewDto(Review review)

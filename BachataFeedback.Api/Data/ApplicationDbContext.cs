@@ -104,6 +104,20 @@ public class ApplicationDbContext : IdentityDbContext<User>
             .HasIndex(ep => new { ep.UserId, ep.EventId })
             .IsUnique();
 
+        // Уникальный индекс TelegramId (sparse — только для не-NULL значений через фильтр)
+        builder.Entity<User>()
+            .HasIndex(u => u.TelegramId)
+            .IsUnique()
+            .HasFilter("[TelegramId] IS NOT NULL")
+            .HasDatabaseName("IX_Users_TelegramId_Unique");
+
+        // Предотвращаем дублирование: один пользователь — один отзыв на конкретное событие
+        // (NULL EventId — разрешено несколько, но ограничено по времени через rate-limit в сервисе)
+        builder.Entity<EventReview>()
+            .HasIndex(er => new { er.ReviewerId, er.EventId })
+            .IsUnique()
+            .HasDatabaseName("IX_EventReviews_ReviewerId_EventId_Unique");
+
         builder.Entity<EventPhoto>()
             .HasOne(p => p.Event)
             .WithMany(e => e.Photos)

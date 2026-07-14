@@ -84,14 +84,7 @@ public class UserService : IUserService
         user.SelfAssessedLevel = model.SelfAssessedLevel;
         user.Bio = model.Bio;
         user.DanceStyles = model.DanceStyles;
-
-        // если добавлено поле роли:
-        var dancerRoleProp = typeof(UpdateProfileDto).GetProperty("DancerRole");
-        if (dancerRoleProp != null)
-        {
-            var dancerRoleValue = (string?)dancerRoleProp.GetValue(model);
-            user.DancerRole = dancerRoleValue;
-        }
+        user.DancerRole = model.DancerRole; // прямой доступ без рефлексии
 
         await _context.SaveChangesAsync();
 
@@ -107,7 +100,8 @@ public class UserService : IUserService
             Bio = user.Bio,
             DanceStyles = user.DanceStyles,
             MainPhotoPath = user.MainPhotoPath,
-            CreatedAt = user.CreatedAt
+            CreatedAt = user.CreatedAt,
+            DancerRole = user.DancerRole
         };
     }
 

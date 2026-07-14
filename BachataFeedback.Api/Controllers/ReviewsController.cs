@@ -20,7 +20,11 @@ public class ReviewsController : ControllerBase
     private readonly IModerationQueue _moderationQueue;
     private readonly ApplicationDbContext _db;
 
-    public ReviewsController(IReviewService reviewService, UserManager<User> userManager, IModerationQueue moderationQueue, ApplicationDbContext db)
+    public ReviewsController(
+        IReviewService reviewService,
+        UserManager<User> userManager,
+        IModerationQueue moderationQueue,
+        ApplicationDbContext db)
     {
         _reviewService = reviewService;
         _userManager = userManager;
@@ -32,7 +36,6 @@ public class ReviewsController : ControllerBase
     public async Task<ActionResult<IEnumerable<ReviewDto>>> GetReviews()
     {
         var requestorId = _userManager.GetUserId(User);
-        var currentUserId = _userManager.GetUserId(User);
         bool isModerator = User.IsInRole("Admin") || User.IsInRole("Moderator");
         var reviews = await _reviewService.GetAllReviewsAsync(requestorId, isModerator);
         return Ok(reviews);
@@ -42,50 +45,9 @@ public class ReviewsController : ControllerBase
     public async Task<ActionResult<IEnumerable<ReviewDto>>> GetUserReviews(string userId)
     {
         var requestorId = _userManager.GetUserId(User);
-        var revieweeSettings = await _userManager.Users
-            .Where(u => u.Id == userId)
-            .Select(u => u.Settings)
-            .FirstOrDefaultAsync();
-
         bool isModerator = User.IsInRole("Admin") || User.IsInRole("Moderator");
-        bool isOwner = requestorId == userId;
 
-        var reviews = (await _reviewService.GetUserReviewsAsync(userId, requestorId, isModerator)).ToList();
-
-        // 1) Фильтр Pending/Red: только модератор или автор видят эти элементы
-        if (!isModerator)
-        {
-            reviews = reviews
-                .Where(r =>
-                {
-                    var level = (r.ModerationLevel ?? "Pending");
-                    if (level == "Red" || level == "Pending")
-                        return r.ReviewerId == requestorId; // автор видит свои Pending/Red
-                    return true;
-                })
-                .ToList();
-        }
-
-        // 2) Приватность по настройкам для посторонних (не владелец и не модератор)
-        if (!isOwner && !isModerator && revieweeSettings != null)
-        {
-            if (!revieweeSettings.ShowRatingsToOthers)
-            {
-                foreach (var r in reviews)
-                {
-                    r.LeadRatings = null;
-                    r.FollowRatings = null;
-                }
-            }
-            if (!revieweeSettings.ShowTextReviewsToOthers)
-            {
-                foreach (var r in reviews)
-                {
-                    r.TextReview = null;
-                }
-            }
-        }
-
+        var reviews = await _reviewService.GetUserReviewsAsync(userId, requestorId, isModerator);
         return Ok(reviews);
     }
 
@@ -95,7 +57,6 @@ public class ReviewsController : ControllerBase
         var me = await _userManager.GetUserAsync(User);
         if (me == null) return Unauthorized();
 
-        // Берём мои отзывы как автора; приватность тут не применяем, т.к. это «мои» отзывы
         var list = await _db.Reviews
             .Include(r => r.Reviewer)
             .Include(r => r.Reviewee)
@@ -104,30 +65,29 @@ public class ReviewsController : ControllerBase
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
 
-        var result = new List<ReviewDto>();
-        foreach (var r in list)
+        // Автор своих отзывов видит полную информацию (включая ReviewerId в анонимных),
+        // но для revieweeName/ratings приватность не применяем — это его собственные отзывы.
+        var result = list.Select(r => new ReviewDto
         {
-            result.Add(new ReviewDto
-            {
-                Id = r.Id,
-                ReviewerId = r.ReviewerId,
-                RevieweeId = r.RevieweeId,
-                ReviewerName = r.IsAnonymous ? "Анонимный пользователь" : $"{r.Reviewer.FirstName} {r.Reviewer.LastName}",
-                RevieweeName = $"{r.Reviewee.FirstName} {r.Reviewee.LastName}",
-                EventId = r.EventId,
-                EventName = r.Event?.Name,
-                LeadRatings = ReviewService.TryDeserialize<Dictionary<string, int>>(r.LeadRatings),
-                FollowRatings = ReviewService.TryDeserialize<Dictionary<string, int>>(r.FollowRatings),
-                TextReview = r.TextReview,
-                Tags = ReviewService.TryDeserialize<List<string>>(r.Tags),
-                IsAnonymous = r.IsAnonymous,
-                CreatedAt = r.CreatedAt,
-                ModerationLevel = r.ModerationLevel.ToString(),
-                ModerationSource = r.ModerationSource.ToString(),
-                ModeratedAt = r.ModeratedAt,
-                ModerationReason = r.ModerationReason
-            });
-        }
+            Id = r.Id,
+            ReviewerId = r.ReviewerId, // автор видит себя даже в анонимных
+            RevieweeId = r.RevieweeId,
+            ReviewerName = r.IsAnonymous ? "Анонимный пользователь" : $"{r.Reviewer.FirstName} {r.Reviewer.LastName}",
+            RevieweeName = $"{r.Reviewee.FirstName} {r.Reviewee.LastName}",
+            EventId = r.EventId,
+            EventName = r.Event?.Name,
+            LeadRatings = ReviewService.TryDeserialize<Dictionary<string, int>>(r.LeadRatings),
+            FollowRatings = ReviewService.TryDeserialize<Dictionary<string, int>>(r.FollowRatings),
+            TextReview = r.TextReview,
+            Tags = ReviewService.TryDeserialize<List<string>>(r.Tags),
+            IsAnonymous = r.IsAnonymous,
+            CreatedAt = r.CreatedAt,
+            ModerationLevel = r.ModerationLevel.ToString(),
+            ModerationSource = r.ModerationSource.ToString(),
+            ModeratedAt = r.ModeratedAt,
+            ModerationReason = r.ModerationReason
+        });
+
         return Ok(result);
     }
 
@@ -151,7 +111,7 @@ public class ReviewsController : ControllerBase
 
         if (hasAnyStars && !hasText)
         {
-            var entity = await _db.Reviews.FindAsync(review.Id);
+            var entity = await _db.Reviews.FindAsync(review!.Id);
             if (entity != null)
             {
                 entity.ModerationLevel = ModerationLevel.Green;
@@ -165,7 +125,7 @@ public class ReviewsController : ControllerBase
             _db.ModerationJobs.Add(new ModerationJob
             {
                 TargetType = "Review",
-                TargetId = review.Id,
+                TargetId = review!.Id,
                 Status = "Pending"
             });
             await _db.SaveChangesAsync();

@@ -35,6 +35,12 @@ public class User : IdentityUser
     [MaxLength(10)]
     public string? DancerRole { get; set; } // "Lead", "Follow", "Both"
 
+    // Telegram OAuth
+    public long? TelegramId { get; set; }
+
+    [MaxLength(64)]
+    public string? TelegramUsername { get; set; }
+
     // Navigation properties
     public UserSettings? Settings { get; set; }
     public ICollection<UserPhoto> Photos { get; set; } = new List<UserPhoto>();
