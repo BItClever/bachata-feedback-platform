@@ -21,6 +21,13 @@ public class ApplicationDbContext : IdentityDbContext<User>
     public DbSet<ModerationJob> ModerationJobs { get; set; }
     public DbSet<EventPhoto> EventPhotos { get; set; }
 
+    // Telegram multi-chat / occurrence system
+    public DbSet<DanceGroup> DanceGroups { get; set; }
+    public DbSet<TelegramChat> TelegramChats { get; set; }
+    public DbSet<Occurrence> Occurrences { get; set; }
+    public DbSet<OccurrencePublication> OccurrencePublications { get; set; }
+    public DbSet<Attendance> Attendances { get; set; }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -161,5 +168,81 @@ public class ApplicationDbContext : IdentityDbContext<User>
         builder.Entity<EventPhoto>()
             .HasIndex(ep => ep.EventId)
             .HasDatabaseName("IX_EventPhotos_EventId");
+
+        // ---- Telegram / Occurrence system ----
+
+        // TelegramChat PK — ChatId (long)
+        builder.Entity<TelegramChat>()
+            .HasKey(tc => tc.ChatId);
+
+        builder.Entity<TelegramChat>()
+            .HasOne(tc => tc.DanceGroup)
+            .WithMany(g => g.Chats)
+            .HasForeignKey(tc => tc.DanceGroupId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Occurrence → DanceGroup
+        builder.Entity<Occurrence>()
+            .HasOne(o => o.DanceGroup)
+            .WithMany(g => g.Occurrences)
+            .HasForeignKey(o => o.DanceGroupId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // OccurrencePublication → Occurrence
+        builder.Entity<OccurrencePublication>()
+            .HasOne(op => op.Occurrence)
+            .WithMany(o => o.Publications)
+            .HasForeignKey(op => op.OccurrenceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // OccurrencePublication → TelegramChat
+        builder.Entity<OccurrencePublication>()
+            .HasOne(op => op.TelegramChat)
+            .WithMany(tc => tc.Publications)
+            .HasForeignKey(op => op.TelegramChatId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Attendance → Occurrence
+        builder.Entity<Attendance>()
+            .HasOne(a => a.Occurrence)
+            .WithMany(o => o.Attendances)
+            .HasForeignKey(a => a.OccurrenceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Attendance → User (nullable)
+        builder.Entity<Attendance>()
+            .HasOne(a => a.User)
+            .WithMany()
+            .HasForeignKey(a => a.UserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Уникальность: один пользователь платформы — одна запись на занятие
+        builder.Entity<Attendance>()
+            .HasIndex(a => new { a.OccurrenceId, a.UserId })
+            .IsUnique()
+            .HasFilter("[UserId] IS NOT NULL")
+            .HasDatabaseName("IX_Attendance_OccurrenceId_UserId_Unique");
+
+        // Уникальность: один Telegram-пользователь — одна запись на занятие
+        builder.Entity<Attendance>()
+            .HasIndex(a => new { a.OccurrenceId, a.TelegramUserId })
+            .IsUnique()
+            .HasFilter("[TelegramUserId] IS NOT NULL")
+            .HasDatabaseName("IX_Attendance_OccurrenceId_TelegramUserId_Unique");
+
+        // Только один canonical_poll (IsVotingSource=true) на Occurrence
+        builder.Entity<OccurrencePublication>()
+            .HasIndex(op => new { op.OccurrenceId, op.IsVotingSource })
+            .HasDatabaseName("IX_OccurrencePublication_OccurrenceId_IsVotingSource");
+
+        // Быстрый поиск publication по TelegramPollId (для poll_answer events)
+        builder.Entity<OccurrencePublication>()
+            .HasIndex(op => op.TelegramPollId)
+            .HasDatabaseName("IX_OccurrencePublication_TelegramPollId");
+
+        // Occurrence: сортировка и фильтрация по времени и статусу
+        builder.Entity<Occurrence>()
+            .HasIndex(o => new { o.StartsAt, o.Status })
+            .HasDatabaseName("IX_Occurrence_StartsAt_Status");
     }
 }
