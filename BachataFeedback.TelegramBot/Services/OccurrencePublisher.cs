@@ -127,7 +127,7 @@ public class OccurrencePublisher
         var question = BuildPollQuestion(occurrence);
 
         // Неанонимный poll: только из него получаем poll_answer updates
-        var pollMsg = await _bot.SendPollAsync(
+        var pollMsg = await _bot.SendPoll(
             chatId: chat.ChatId,
             question: question,
             options: ["✅ Иду", "❌ Не иду"],
@@ -168,7 +168,7 @@ public class OccurrencePublisher
             }
         });
 
-        var mirrorMsg = await _bot.SendTextMessageAsync(
+        var mirrorMsg = await _bot.SendMessage(
             chatId: chat.ChatId,
             text: text,
             parseMode: ParseMode.Html,

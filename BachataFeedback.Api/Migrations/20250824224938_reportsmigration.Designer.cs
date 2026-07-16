@@ -9,6 +9,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
+#pragma warning disable CS8981 // The type name only contains lower-cased ascii characters
+
 namespace BachataFeedback.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]

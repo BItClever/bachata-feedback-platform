@@ -55,7 +55,7 @@ public class InlineQueryHandler
             results = await BuildUpcomingResultsAsync(ct);
         }
 
-        await _bot.AnswerInlineQueryAsync(
+        await _bot.AnswerInlineQuery(
             iq.Id,
             results,
             cacheTime: 30,

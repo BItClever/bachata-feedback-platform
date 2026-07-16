@@ -1,0 +1,2 @@
+// DTO совпадает с record в BachataFeedback.TelegramBot.Services.AnalysisJobPublisher
+public record AnalysisJobMessage(int JobId, long ChatId, string Type, int MessageCount, long? TargetUserId, string? TargetUserDisplayName);

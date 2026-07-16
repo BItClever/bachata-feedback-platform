@@ -28,6 +28,11 @@ public class ApplicationDbContext : IdentityDbContext<User>
     public DbSet<OccurrencePublication> OccurrencePublications { get; set; }
     public DbSet<Attendance> Attendances { get; set; }
 
+    // Chat analytics
+    public DbSet<ChatMessage> ChatMessages { get; set; }
+    public DbSet<AnalysisJob> AnalysisJobs { get; set; }
+    public DbSet<UserChatProfile> UserChatProfiles { get; set; }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -244,5 +249,49 @@ public class ApplicationDbContext : IdentityDbContext<User>
         builder.Entity<Occurrence>()
             .HasIndex(o => new { o.StartsAt, o.Status })
             .HasDatabaseName("IX_Occurrence_StartsAt_Status");
+
+        // ---- Chat analytics ----
+
+        // ChatMessage → TelegramChat (nullable FK, без каскадного удаления)
+        builder.Entity<ChatMessage>()
+            .HasOne(cm => cm.TelegramChat)
+            .WithMany()
+            .HasForeignKey(cm => cm.TelegramChatId)
+            .HasPrincipalKey(tc => tc.ChatId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Индекс для быстрого получения последних N сообщений чата
+        builder.Entity<ChatMessage>()
+            .HasIndex(cm => new { cm.TelegramChatId, cm.SentAt })
+            .HasDatabaseName("IX_ChatMessage_ChatId_SentAt");
+
+        // Индекс для выборки сообщений конкретного пользователя в чате
+        builder.Entity<ChatMessage>()
+            .HasIndex(cm => new { cm.TelegramChatId, cm.TelegramUserId })
+            .HasDatabaseName("IX_ChatMessage_ChatId_UserId");
+
+        // Уникальность: одно сообщение в одном чате
+        builder.Entity<ChatMessage>()
+            .HasIndex(cm => new { cm.TelegramChatId, cm.TelegramMessageId })
+            .IsUnique()
+            .HasDatabaseName("IX_ChatMessage_ChatId_MessageId_Unique");
+
+        // AnalysisJob: поиск незавершённых для доставки
+        builder.Entity<AnalysisJob>()
+            .HasIndex(aj => new { aj.Status, aj.SentToChat })
+            .HasDatabaseName("IX_AnalysisJob_Status_SentToChat");
+
+        // UserChatProfile: один профиль на пользователя+чат
+        builder.Entity<UserChatProfile>()
+            .HasOne(p => p.TelegramChat)
+            .WithMany()
+            .HasForeignKey(p => p.TelegramChatId)
+            .HasPrincipalKey(tc => tc.ChatId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<UserChatProfile>()
+            .HasIndex(p => new { p.TelegramUserId, p.TelegramChatId })
+            .IsUnique()
+            .HasDatabaseName("IX_UserChatProfile_UserId_ChatId_Unique");
     }
 }

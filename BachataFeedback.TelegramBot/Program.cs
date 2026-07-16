@@ -39,15 +39,18 @@ await Host.CreateDefaultBuilder(args)
         // Services
         services.AddScoped<AttendanceTracker>();
         services.AddScoped<OccurrencePublisher>();
+        services.AddScoped<AnalysisJobPublisher>();
 
         // Handlers
         services.AddScoped<UpdateDispatcher>();
         services.AddScoped<CommandHandler>();
+        services.AddScoped<AnalyticsCommandHandler>();
         services.AddScoped<PollAnswerHandler>();
         services.AddScoped<CallbackQueryHandler>();
         services.AddScoped<InlineQueryHandler>();
 
         // Polling hosted service
         services.AddHostedService<BotPollingService>();
+        services.AddHostedService<AnalysisResultDeliveryService>();
     })
     .RunConsoleAsync();

@@ -60,7 +60,7 @@ public class CallbackQueryHandler
         }
         else
         {
-            await _bot.AnswerCallbackQueryAsync(cbq.Id, "Неизвестная команда", cancellationToken: ct);
+            await _bot.AnswerCallbackQuery(cbq.Id, "Неизвестная команда", cancellationToken: ct);
         }
     }
 
@@ -75,18 +75,18 @@ public class CallbackQueryHandler
 
         if (occurrence == null)
         {
-            await _bot.AnswerCallbackQueryAsync(cbq.Id, "Занятие не найдено", cancellationToken: ct);
+            await _bot.AnswerCallbackQuery(cbq.Id, "Занятие не найдено", cancellationToken: ct);
             return;
         }
 
         if (occurrence.Status == OccurrenceStatus.Cancelled)
         {
-            await _bot.AnswerCallbackQueryAsync(cbq.Id, "Это занятие отменено", cancellationToken: ct);
+            await _bot.AnswerCallbackQuery(cbq.Id, "Это занятие отменено", cancellationToken: ct);
             return;
         }
 
         // Отвечаем на callback немедленно, чтобы убрать спиннер
-        await _bot.AnswerCallbackQueryAsync(cbq.Id, cancellationToken: ct);
+        await _bot.AnswerCallbackQuery(cbq.Id, cancellationToken: ct);
 
         // Отправляем карточку в личку с кнопками подтверждения
         var text = BuildOccurrenceCard(occurrence);
@@ -101,7 +101,7 @@ public class CallbackQueryHandler
 
         try
         {
-            await _bot.SendTextMessageAsync(
+            await _bot.SendMessage(
                 chatId: cbq.From.Id,
                 text: text,
                 parseMode: ParseMode.Html,
@@ -112,7 +112,7 @@ public class CallbackQueryHandler
         {
             _logger.LogWarning(ex, "[Callback] Cannot send DM to user {UserId} — bot may be blocked", userId);
             // Показываем inline-уведомление если личка заблокирована
-            await _bot.AnswerCallbackQueryAsync(
+            await _bot.AnswerCallbackQuery(
                 cbq.Id,
                 "Пожалуйста, напишите боту в личку, чтобы записаться",
                 showAlert: true,
@@ -129,7 +129,7 @@ public class CallbackQueryHandler
             occurrenceId, userId, username, displayName,
             AttendanceStatus.NotGoing, ct);
 
-        await _bot.AnswerCallbackQueryAsync(cbq.Id, "Понял, ты не придёшь", cancellationToken: ct);
+        await _bot.AnswerCallbackQuery(cbq.Id, "Понял, ты не придёшь", cancellationToken: ct);
     }
 
     private async Task HandleInfoAsync(CallbackQuery cbq, int occurrenceId, CancellationToken ct)
@@ -140,15 +140,15 @@ public class CallbackQueryHandler
 
         if (occurrence == null)
         {
-            await _bot.AnswerCallbackQueryAsync(cbq.Id, "Занятие не найдено", cancellationToken: ct);
+            await _bot.AnswerCallbackQuery(cbq.Id, "Занятие не найдено", cancellationToken: ct);
             return;
         }
 
         var summary = await _tracker.GetSummaryAsync(occurrenceId, ct);
         var text = BuildOccurrenceCard(occurrence, summary);
 
-        await _bot.AnswerCallbackQueryAsync(cbq.Id, cancellationToken: ct);
-        await _bot.SendTextMessageAsync(
+        await _bot.AnswerCallbackQuery(cbq.Id, cancellationToken: ct);
+        await _bot.SendMessage(
             chatId: cbq.From.Id,
             text: text,
             parseMode: ParseMode.Html,

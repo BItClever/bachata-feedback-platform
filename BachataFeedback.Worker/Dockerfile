@@ -8,6 +8,7 @@ COPY ["BachataFeedback.Api/BachataFeedback.Api.csproj", "BachataFeedback.Api/"]
 COPY ["BachataFeedback.Core/BachataFeedback.Core.csproj", "BachataFeedback.Core/"]
 RUN dotnet restore "BachataFeedback.Worker/BachataFeedback.Worker.csproj"
 COPY . .
+RUN rm -f /src/BachataFeedback.Api/appsettings.json /src/BachataFeedback.Api/appsettings.*.json || true
 WORKDIR "/src/BachataFeedback.Worker"
 RUN dotnet publish "BachataFeedback.Worker.csproj" -c Release -o /app/publish /p:UseAppHost=false
 

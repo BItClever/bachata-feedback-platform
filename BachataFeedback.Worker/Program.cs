@@ -27,6 +27,7 @@ await Host.CreateDefaultBuilder(args)
         services.AddSingleton<ILLMClient, LMStudioClient>();
 
         services.AddHostedService<ModerationWorker>();
+        services.AddHostedService<ChatAnalysisConsumer>();
     })
     .RunConsoleAsync();
 
@@ -389,6 +390,7 @@ public record ModerationVerdict(string Level, string Reason, string[] Categories
 public interface ILLMClient
 {
     Task<ModerationVerdict> ClassifyAsync(string input, CancellationToken ct);
+    Task<string> SummarizeAsync(string prompt, CancellationToken ct);
 }
 
 // LM Studio (OpenAI совместимый /v1/chat/completions)
@@ -459,6 +461,36 @@ public class LMStudioClient : ILLMClient
             .GetProperty("content")
             .GetString() ?? "";
         return ParseVerdict(content);
+    }
+
+    public async Task<string> SummarizeAsync(string prompt, CancellationToken ct)
+    {
+        var payload = new
+        {
+            model = _model,
+            messages = new[]
+            {
+                new { role = "user", content = prompt }
+            },
+            temperature = 0.3,
+            max_tokens = 1024,
+            stream = false
+        };
+
+        using var req = new HttpRequestMessage(HttpMethod.Post, $"{_base}/v1/chat/completions")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
+        };
+        using var res = await _http.SendAsync(req, ct);
+        res.EnsureSuccessStatusCode();
+
+        var raw = await res.Content.ReadAsStringAsync(ct);
+        using var doc = JsonDocument.Parse(raw);
+        return doc.RootElement
+            .GetProperty("choices")[0]
+            .GetProperty("message")
+            .GetProperty("content")
+            .GetString() ?? "⚠️ LLM не вернул результат.";
     }
 
     private static ModerationVerdict ParseVerdict(string llmText)

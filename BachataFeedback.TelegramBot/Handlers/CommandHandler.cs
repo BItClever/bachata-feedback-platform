@@ -112,7 +112,7 @@ public class CommandHandler
             + "• /support — где нужен саппорт\n\n"
             + "Или набери <code>@botname</code> в любом чате для inline-поиска.";
 
-        await _bot.SendTextMessageAsync(msg.Chat.Id, text, parseMode: ParseMode.Html, cancellationToken: ct);
+        await _bot.SendMessage(msg.Chat.Id, text, parseMode: ParseMode.Html, cancellationToken: ct);
     }
 
     private async Task HandleNextEventAsync(Message msg, CancellationToken ct)
@@ -127,7 +127,7 @@ public class CommandHandler
 
         if (next == null)
         {
-            await _bot.SendTextMessageAsync(msg.Chat.Id, "😔 Ближайших занятий/ивентов пока нет.", cancellationToken: ct);
+            await _bot.SendMessage(msg.Chat.Id, "😔 Ближайших занятий/ивентов пока нет.", cancellationToken: ct);
             return;
         }
 
@@ -143,7 +143,7 @@ public class CommandHandler
             }
         });
 
-        await _bot.SendTextMessageAsync(msg.Chat.Id, text, parseMode: ParseMode.Html, replyMarkup: keyboard, cancellationToken: ct);
+        await _bot.SendMessage(msg.Chat.Id, text, parseMode: ParseMode.Html, replyMarkup: keyboard, cancellationToken: ct);
     }
 
     private async Task HandleTodayAsync(Message msg, CancellationToken ct)
@@ -160,7 +160,7 @@ public class CommandHandler
 
         if (!occurrences.Any())
         {
-            await _bot.SendTextMessageAsync(msg.Chat.Id, "Сегодня занятий нет 😌", cancellationToken: ct);
+            await _bot.SendMessage(msg.Chat.Id, "Сегодня занятий нет 😌", cancellationToken: ct);
             return;
         }
 
@@ -176,7 +176,7 @@ public class CommandHandler
                     InlineKeyboardButton.WithCallbackData("ℹ️ Подробнее", $"info:{o.Id}")
                 }
             });
-            await _bot.SendTextMessageAsync(msg.Chat.Id, text, parseMode: ParseMode.Html, replyMarkup: keyboard, cancellationToken: ct);
+            await _bot.SendMessage(msg.Chat.Id, text, parseMode: ParseMode.Html, replyMarkup: keyboard, cancellationToken: ct);
         }
     }
 
@@ -204,7 +204,7 @@ public class CommandHandler
 
         if (!needSupport.Any())
         {
-            await _bot.SendTextMessageAsync(msg.Chat.Id, "✅ На ближайших занятиях (48ч) баланс в норме.", cancellationToken: ct);
+            await _bot.SendMessage(msg.Chat.Id, "✅ На ближайших занятиях (48ч) баланс в норме.", cancellationToken: ct);
             return;
         }
 
@@ -224,7 +224,7 @@ public class CommandHandler
                 new[] { InlineKeyboardButton.WithCallbackData("🤝 Я могу помочь", $"join:{o.Id}") }
             });
 
-            await _bot.SendTextMessageAsync(msg.Chat.Id, text, parseMode: ParseMode.Html, replyMarkup: keyboard, cancellationToken: ct);
+            await _bot.SendMessage(msg.Chat.Id, text, parseMode: ParseMode.Html, replyMarkup: keyboard, cancellationToken: ct);
         }
     }
 
@@ -239,7 +239,7 @@ public class CommandHandler
         var parts = args.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length < 2)
         {
-            await _bot.SendTextMessageAsync(msg.Chat.Id,
+            await _bot.SendMessage(msg.Chat.Id,
                 "❌ Формат: /add_lesson 2026-07-20 19:00 [Уровень] [лимит]\nПример: /add_lesson 2026-07-20 19:00 Intermediate 16",
                 cancellationToken: ct);
             return;
@@ -247,7 +247,7 @@ public class CommandHandler
 
         if (!DateTime.TryParse($"{parts[0]} {parts[1]}", out var startsAt))
         {
-            await _bot.SendTextMessageAsync(msg.Chat.Id, "❌ Неверный формат даты. Используй: yyyy-MM-dd HH:mm", cancellationToken: ct);
+            await _bot.SendMessage(msg.Chat.Id, "❌ Неверный формат даты. Используй: yyyy-MM-dd HH:mm", cancellationToken: ct);
             return;
         }
 
@@ -266,7 +266,7 @@ public class CommandHandler
         _db.Occurrences.Add(occurrence);
         await _db.SaveChangesAsync(ct);
 
-        await _bot.SendTextMessageAsync(msg.Chat.Id,
+        await _bot.SendMessage(msg.Chat.Id,
             $"✅ Занятие создано (ID: <b>{occurrence.Id}</b>)\n"
             + $"📅 {startsAt:dd.MM.yyyy HH:mm}\n"
             + (level != null ? $"📊 {level}\n" : "")
@@ -284,7 +284,7 @@ public class CommandHandler
         var parts = args.Split(' ', 4, StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length < 2)
         {
-            await _bot.SendTextMessageAsync(msg.Chat.Id,
+            await _bot.SendMessage(msg.Chat.Id,
                 "❌ Формат: /add_party 2026-07-25 21:00 [Название] [лимит]",
                 cancellationToken: ct);
             return;
@@ -292,7 +292,7 @@ public class CommandHandler
 
         if (!DateTime.TryParse($"{parts[0]} {parts[1]}", out var startsAt))
         {
-            await _bot.SendTextMessageAsync(msg.Chat.Id, "❌ Неверный формат даты.", cancellationToken: ct);
+            await _bot.SendMessage(msg.Chat.Id, "❌ Неверный формат даты.", cancellationToken: ct);
             return;
         }
 
@@ -326,7 +326,7 @@ public class CommandHandler
         _db.Occurrences.Add(occurrence);
         await _db.SaveChangesAsync(ct);
 
-        await _bot.SendTextMessageAsync(msg.Chat.Id,
+        await _bot.SendMessage(msg.Chat.Id,
             $"✅ Вечеринка создана (ID: <b>{occurrence.Id}</b>)\n"
             + $"📅 {startsAt:dd.MM.yyyy HH:mm}\n"
             + (title != null ? $"📌 {title}\n" : "")
@@ -343,7 +343,7 @@ public class CommandHandler
     {
         if (!int.TryParse(args.Trim(), out var id))
         {
-            await _bot.SendTextMessageAsync(msg.Chat.Id, "❌ Укажи ID: /publish 42", cancellationToken: ct);
+            await _bot.SendMessage(msg.Chat.Id, "❌ Укажи ID: /publish 42", cancellationToken: ct);
             return;
         }
 
@@ -353,27 +353,27 @@ public class CommandHandler
 
         if (occurrence == null)
         {
-            await _bot.SendTextMessageAsync(msg.Chat.Id, $"❌ Occurrence #{id} не найден", cancellationToken: ct);
+            await _bot.SendMessage(msg.Chat.Id, $"❌ Occurrence #{id} не найден", cancellationToken: ct);
             return;
         }
 
         if (occurrence.Status == OccurrenceStatus.Published)
         {
-            await _bot.SendTextMessageAsync(msg.Chat.Id, $"⚠️ Occurrence #{id} уже опубликован", cancellationToken: ct);
+            await _bot.SendMessage(msg.Chat.Id, $"⚠️ Occurrence #{id} уже опубликован", cancellationToken: ct);
             return;
         }
 
         try
         {
             await _publisher.PublishAsync(occurrence, ct);
-            await _bot.SendTextMessageAsync(msg.Chat.Id,
+            await _bot.SendMessage(msg.Chat.Id,
                 $"✅ Occurrence #{id} опубликован во все настроенные чаты",
                 cancellationToken: ct);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[CommandHandler] Publish failed for occurrence #{Id}", id);
-            await _bot.SendTextMessageAsync(msg.Chat.Id,
+            await _bot.SendMessage(msg.Chat.Id,
                 $"❌ Ошибка публикации: {ex.Message}",
                 cancellationToken: ct);
         }
@@ -386,7 +386,7 @@ public class CommandHandler
     {
         if (!int.TryParse(args.Trim(), out var id))
         {
-            await _bot.SendTextMessageAsync(msg.Chat.Id, "❌ Укажи ID: /close_poll 42", cancellationToken: ct);
+            await _bot.SendMessage(msg.Chat.Id, "❌ Укажи ID: /close_poll 42", cancellationToken: ct);
             return;
         }
 
@@ -396,7 +396,7 @@ public class CommandHandler
 
         if (publication == null)
         {
-            await _bot.SendTextMessageAsync(msg.Chat.Id,
+            await _bot.SendMessage(msg.Chat.Id,
                 $"❌ Canonical poll для Occurrence #{id} не найден",
                 cancellationToken: ct);
             return;
@@ -404,13 +404,13 @@ public class CommandHandler
 
         if (string.IsNullOrEmpty(publication.TelegramPollId) || !publication.TelegramMessageId.HasValue)
         {
-            await _bot.SendTextMessageAsync(msg.Chat.Id, "❌ Poll ещё не опубликован", cancellationToken: ct);
+            await _bot.SendMessage(msg.Chat.Id, "❌ Poll ещё не опубликован", cancellationToken: ct);
             return;
         }
 
         try
         {
-            await _bot.StopPollAsync(
+            await _bot.StopPoll(
                 chatId: publication.TelegramChatId,
                 messageId: (int)publication.TelegramMessageId.Value,
                 cancellationToken: ct);
@@ -418,14 +418,14 @@ public class CommandHandler
             publication.Occurrence.Status = OccurrenceStatus.Completed;
             await _db.SaveChangesAsync(ct);
 
-            await _bot.SendTextMessageAsync(msg.Chat.Id,
+            await _bot.SendMessage(msg.Chat.Id,
                 $"✅ Poll для Occurrence #{id} закрыт. Статус: completed.",
                 cancellationToken: ct);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[CommandHandler] StopPoll failed for occurrence #{Id}", id);
-            await _bot.SendTextMessageAsync(msg.Chat.Id, $"❌ Ошибка: {ex.Message}", cancellationToken: ct);
+            await _bot.SendMessage(msg.Chat.Id, $"❌ Ошибка: {ex.Message}", cancellationToken: ct);
         }
     }
 
@@ -445,7 +445,7 @@ public class CommandHandler
 
         if (!upcoming.Any())
         {
-            await _bot.SendTextMessageAsync(msg.Chat.Id, "Нет запланированных занятий.", cancellationToken: ct);
+            await _bot.SendMessage(msg.Chat.Id, "Нет запланированных занятий.", cancellationToken: ct);
             return;
         }
 
@@ -467,7 +467,7 @@ public class CommandHandler
                 + $"[{o.Level ?? "-"}] 👤{goingCount}");
         }
 
-        await _bot.SendTextMessageAsync(msg.Chat.Id, string.Join("\n", lines), parseMode: ParseMode.Html, cancellationToken: ct);
+        await _bot.SendMessage(msg.Chat.Id, string.Join("\n", lines), parseMode: ParseMode.Html, cancellationToken: ct);
     }
 
     /// <summary>
@@ -477,21 +477,21 @@ public class CommandHandler
     {
         if (!int.TryParse(args.Trim(), out var id))
         {
-            await _bot.SendTextMessageAsync(msg.Chat.Id, "❌ Укажи ID: /cancel 42", cancellationToken: ct);
+            await _bot.SendMessage(msg.Chat.Id, "❌ Укажи ID: /cancel 42", cancellationToken: ct);
             return;
         }
 
         var occurrence = await _db.Occurrences.FindAsync(new object[] { id }, ct);
         if (occurrence == null)
         {
-            await _bot.SendTextMessageAsync(msg.Chat.Id, $"❌ Occurrence #{id} не найден", cancellationToken: ct);
+            await _bot.SendMessage(msg.Chat.Id, $"❌ Occurrence #{id} не найден", cancellationToken: ct);
             return;
         }
 
         occurrence.Status = OccurrenceStatus.Cancelled;
         await _db.SaveChangesAsync(ct);
 
-        await _bot.SendTextMessageAsync(msg.Chat.Id,
+        await _bot.SendMessage(msg.Chat.Id,
             $"✅ Occurrence #{id} отменён.",
             cancellationToken: ct);
     }
@@ -503,7 +503,7 @@ public class CommandHandler
         var userId = msg.From?.Id ?? 0;
         if (!_cfg.IsAdmin(userId))
         {
-            await _bot.SendTextMessageAsync(msg.Chat.Id,
+            await _bot.SendMessage(msg.Chat.Id,
                 "⛔ Эта команда доступна только администраторам.",
                 cancellationToken: ct);
             return;
