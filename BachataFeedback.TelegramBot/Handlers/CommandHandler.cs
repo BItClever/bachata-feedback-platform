@@ -14,14 +14,16 @@ namespace BachataFeedback.TelegramBot.Handlers;
 /// Обрабатывает slash-команды.
 ///
 /// Публичные (любой чат):
-///   /next_event  — ближайший ивент
-///   /today       — занятия сегодня
-///   /support     — дисбаланс лидов/фолловеров
-///   /start       — приветствие
+///   /help             — список всех команд с примерами
+///   /next_event       — ближайший ивент
+///   /today            — занятия сегодня
+///   /tomorrow         — занятия на завтра
+///   /support          — дисбаланс парней/девушек
+///   /start            — приветствие
 ///
 /// Только для admin:
-///   /add_lesson yyyy-MM-dd HH:mm [Уровень] [лимит]  — создать занятие
-///   /add_party  yyyy-MM-dd HH:mm [Название] [лимит]  — создать вечеринку
+///   /add_lesson yyyy-MM-dd HH:mm [лимит] [уровень] — создать занятие
+///   /add_party  yyyy-MM-dd HH:mm [Название] [лимит] — создать вечеринку
 ///   /publish {id}        — опубликовать occurrence (canonical poll в primary-чат + зеркала)
 ///   /close_poll {id}     — закрыть poll
 ///   /occurrences         — список предстоящих
@@ -65,11 +67,17 @@ public class CommandHandler
             case "/start":
                 await HandleStartAsync(msg, ct);
                 break;
+            case "/help":
+                await HandleHelpAsync(msg, ct);
+                break;
             case "/next_event":
                 await HandleNextEventAsync(msg, ct);
                 break;
             case "/today":
                 await HandleTodayAsync(msg, ct);
+                break;
+            case "/tomorrow":
+                await HandleTomorrowAsync(msg, ct);
                 break;
             case "/support":
                 await HandleSupportAsync(msg, ct);
@@ -105,13 +113,51 @@ public class CommandHandler
 
     private async Task HandleStartAsync(Message msg, CancellationToken ct)
     {
-        var text = "<b>👋 Привет! Я бот школы bachata.</b>\n\n"
-            + "Я умею:\n"
-            + "• /next_event — ближайший ивент\n"
+        var text = "<b>👋 Привет! Я бот школы танцев.</b>\n\n"
+            + "Я помогаю с расписанием, записью на занятия и аналитикой чата.\n\n"
+            + "Основные команды:\n"
+            + "• /help — список всех команд с примерами\n"
             + "• /today — занятия сегодня\n"
-            + "• /support — где нужен саппорт\n\n"
-            + "Или набери <code>@botname</code> в любом чате для inline-поиска.";
+            + "• /tomorrow — занятия на завтра\n"
+            + "• /next_event — ближайший ивент\n"
+            + "• /summary [100] — краткое содержание чата\n\n"
+            + "Чтобы записаться на занятие — просто нажми кнопку в опросе! 👇";
 
+        await _bot.SendMessage(msg.Chat.Id, text, parseMode: ParseMode.Html, cancellationToken: ct);
+    }
+
+    private async Task HandleHelpAsync(Message msg, CancellationToken ct)
+    {
+        var publicCmds = "<b>📋 Публичные команды</b>\n\n"
+            + "<b>/help</b> — этот список\n"
+            + "<b>/today</b> — занятия и ивенты сегодня\n"
+            + "<b>/tomorrow</b> — занятия и ивенты на завтра\n"
+            + "<b>/next_event</b> — ближайший ивент\n"
+            + "  <i>Пример:</i> /next_event\n\n"
+            + "<b>/support</b> — где не хватает парней или девушек\n"
+            + "  <i>Пример:</i> /support\n\n"
+            + "<b>/summary [100|200|300]</b> — краткое содержание последних сообщений чата (LLM)\n"
+            + "  <i>Пример:</i> /summary 200\n\n"
+            + "<b>/profile @username [100|200|300|500]</b> — анализ сообщений пользователя (admin)\n"
+            + "  <i>Пример:</i> /profile @john_doe 200\n\n"
+            + "<b>/analytics [100|200|300]</b> — общая аналитика чата (admin)\n"
+            + "  <i>Пример:</i> /analytics 200";
+
+        var adminCmds = "\n\n<b>🔧 Команды администратора</b>\n\n"
+            + "<b>/add_lesson</b> — создать занятие\n"
+            + "  <i>Пример:</i> /add_lesson 2026-08-01 19:00 16 5 месяцев\n"
+            + "  <i>Пример:</i> /add_lesson 2026-08-01 19:00 полтора года\n\n"
+            + "<b>/add_party</b> — создать вечеринку\n"
+            + "  <i>Пример:</i> /add_party 2026-08-01 21:00 Летняя фиеста 50\n\n"
+            + "<b>/publish {id}</b> — опубликовать опрос\n"
+            + "  <i>Пример:</i> /publish 42\n\n"
+            + "<b>/close_poll {id}</b> — закрыть опрос\n"
+            + "  <i>Пример:</i> /close_poll 42\n\n"
+            + "<b>/occurrences</b> — список предстоящих занятий\n"
+            + "<b>/cancel {id}</b> — отменить занятие\n"
+            + "  <i>Пример:</i> /cancel 42";
+
+        var text = publicCmds + adminCmds;
         await _bot.SendMessage(msg.Chat.Id, text, parseMode: ParseMode.Html, cancellationToken: ct);
     }
 
@@ -160,7 +206,42 @@ public class CommandHandler
 
         if (!occurrences.Any())
         {
-            await _bot.SendMessage(msg.Chat.Id, "Сегодня занятий нет 😌", cancellationToken: ct);
+            await _bot.SendMessage(msg.Chat.Id, "📭 Сегодня занятий нет 😌", cancellationToken: ct);
+            return;
+        }
+
+        foreach (var o in occurrences)
+        {
+            var goingCount = o.Attendances.Count(a => a.Status == AttendanceStatus.Going);
+            var text = BuildOccurrenceText(o, goingCount);
+            var keyboard = new InlineKeyboardMarkup(new[]
+            {
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("✅ Хочу прийти", $"join:{o.Id}"),
+                    InlineKeyboardButton.WithCallbackData("ℹ️ Подробнее", $"info:{o.Id}")
+                }
+            });
+            await _bot.SendMessage(msg.Chat.Id, text, parseMode: ParseMode.Html, replyMarkup: keyboard, cancellationToken: ct);
+        }
+    }
+
+    private async Task HandleTomorrowAsync(Message msg, CancellationToken ct)
+    {
+        var today = DateTime.UtcNow.Date;
+        var tomorrowStart = today.AddDays(1);
+        var tomorrowEnd = tomorrowStart.AddDays(1);
+
+        var occurrences = await _db.Occurrences
+            .Include(o => o.DanceGroup)
+            .Include(o => o.Attendances)
+            .Where(o => o.StartsAt >= tomorrowStart && o.StartsAt < tomorrowEnd && o.Status == OccurrenceStatus.Published)
+            .OrderBy(o => o.StartsAt)
+            .ToListAsync(ct);
+
+        if (!occurrences.Any())
+        {
+            await _bot.SendMessage(msg.Chat.Id, "📭 Завтра занятий нет 😌", cancellationToken: ct);
             return;
         }
 
@@ -190,16 +271,16 @@ public class CommandHandler
             .Include(o => o.Attendances)
             .Where(o => o.StartsAt >= now && o.StartsAt <= soon
                 && o.Status == OccurrenceStatus.Published
-                && (o.BalanceLeads != null || o.BalanceFollows != null))
+                && (o.BalanceMales != null || o.BalanceFemales != null))
             .ToListAsync(ct);
 
         var needSupport = occurrences.Where(o =>
         {
             var going = o.Attendances.Where(a => a.Status == AttendanceStatus.Going).ToList();
-            var leads = going.Count(a => a.DancerRole == "lead");
-            var follows = going.Count(a => a.DancerRole == "follow");
-            return (o.BalanceLeads.HasValue && leads < o.BalanceLeads.Value)
-                || (o.BalanceFollows.HasValue && follows < o.BalanceFollows.Value);
+            var males = going.Count(a => a.DancerRole == DancerRoleAttendance.Male);
+            var females = going.Count(a => a.DancerRole == DancerRoleAttendance.Female);
+            return (o.BalanceMales.HasValue && males < o.BalanceMales.Value)
+                || (o.BalanceFemales.HasValue && females < o.BalanceFemales.Value);
         }).ToList();
 
         if (!needSupport.Any())
@@ -211,13 +292,13 @@ public class CommandHandler
         foreach (var o in needSupport)
         {
             var going = o.Attendances.Where(a => a.Status == AttendanceStatus.Going).ToList();
-            var leads = going.Count(a => a.DancerRole == "lead");
-            var follows = going.Count(a => a.DancerRole == "follow");
+            var males = going.Count(a => a.DancerRole == DancerRoleAttendance.Male);
+            var females = going.Count(a => a.DancerRole == DancerRoleAttendance.Female);
             var timeStr = o.StartsAt.ToString("dd.MM HH:mm");
 
-            var text = $"<b>🤝 Нужен саппорт</b>\n"
+            var text = $"<b>🤝 Нужна поддержка</b>\n"
                 + $"📅 {timeStr} — {o.DanceGroup?.Name ?? o.Type}\n"
-                + $"🕺 Лиды: {leads}/{o.BalanceLeads} | 💃 Фолловеры: {follows}/{o.BalanceFollows}";
+                + $"👦 Парни: {males}/{o.BalanceMales} | 👧 Девушки: {females}/{o.BalanceFemales}";
 
             var keyboard = new InlineKeyboardMarkup(new[]
             {
@@ -231,16 +312,22 @@ public class CommandHandler
     // ─── ADMIN COMMANDS ───────────────────────────────────────────────────────
 
     /// <summary>
-    /// /add_lesson 2026-07-20 19:00 Intermediate 16
+    /// /add_lesson 2026-07-20 19:00 [лимит] [уровень]
+    /// Уровень может быть в свободном формате: "5 месяцев", "полтора года", "2 года"
+    /// Если 3-й токен — число, это лимит, остальное — уровень.
+    /// Если 3-й токен — не число, это уровень, лимита нет.
     /// </summary>
     private async Task HandleAddLessonAsync(Message msg, string args, CancellationToken ct)
     {
-        // Формат: yyyy-MM-dd HH:mm [Level] [Capacity]
         var parts = args.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length < 2)
         {
             await _bot.SendMessage(msg.Chat.Id,
-                "❌ Формат: /add_lesson 2026-07-20 19:00 [Уровень] [лимит]\nПример: /add_lesson 2026-07-20 19:00 Intermediate 16",
+                "❌ Формат: /add_lesson 2026-07-20 19:00 [лимит] [уровень]\n"
+                + "Примеры:\n"
+                + "  /add_lesson 2026-08-01 19:00 16 5 месяцев\n"
+                + "  /add_lesson 2026-08-01 19:00 полтора года\n"
+                + "  /add_lesson 2026-08-01 19:00 0 месяцев",
                 cancellationToken: ct);
             return;
         }
@@ -251,8 +338,25 @@ public class CommandHandler
             return;
         }
 
-        var level = parts.Length > 2 ? parts[2] : null;
-        var capacity = parts.Length > 3 && int.TryParse(parts[3], out var cap) ? cap : (int?)null;
+        // Если 3-й токен есть и это число — это capacity
+        int? capacity = null;
+        string? level = null;
+        if (parts.Length > 2)
+        {
+            if (int.TryParse(parts[2], out var cap))
+            {
+                capacity = cap;
+                // Уровень — всё что после лимита
+                level = parts.Length > 3
+                    ? string.Join(" ", parts.Skip(3))
+                    : null;
+            }
+            else
+            {
+                // 3-й токен не число — это уровень
+                level = string.Join(" ", parts.Skip(2));
+            }
+        }
 
         var occurrence = new Occurrence
         {
@@ -266,14 +370,13 @@ public class CommandHandler
         _db.Occurrences.Add(occurrence);
         await _db.SaveChangesAsync(ct);
 
-        await _bot.SendMessage(msg.Chat.Id,
-            $"✅ Занятие создано (ID: <b>{occurrence.Id}</b>)\n"
+        var reply = $"✅ Занятие создано (ID: <b>{occurrence.Id}</b>)\n"
             + $"📅 {startsAt:dd.MM.yyyy HH:mm}\n"
-            + (level != null ? $"📊 {level}\n" : "")
+            + (level != null ? $"📊 Уровень: {level}\n" : "")
             + (capacity.HasValue ? $"🎯 Лимит: {capacity}\n" : "")
-            + $"\nДля публикации: /publish {occurrence.Id}",
-            parseMode: ParseMode.Html,
-            cancellationToken: ct);
+            + $"\nДля публикации: /publish {occurrence.Id}";
+
+        await _bot.SendMessage(msg.Chat.Id, reply, parseMode: ParseMode.Html, cancellationToken: ct);
     }
 
     /// <summary>

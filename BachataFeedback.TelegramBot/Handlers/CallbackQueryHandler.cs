@@ -46,7 +46,13 @@ public class CallbackQueryHandler
 
         _logger.LogInformation("[Callback] User={UserId} data={Data}", userId, data);
 
-        if (data.StartsWith("join:") && int.TryParse(data[5..], out var joinId))
+        if (data.StartsWith("confirm:") && int.TryParse(data[8..], out var confirmId))
+        {
+            await _tracker.TrackButtonActionAsync(
+                confirmId, userId, username, displayName, AttendanceStatus.Going, ct);
+            await _bot.AnswerCallbackQuery(cbq.Id, "✅ Ты записан!", cancellationToken: ct);
+        }
+        else if (data.StartsWith("join:") && int.TryParse(data[5..], out var joinId))
         {
             await HandleJoinAsync(cbq, joinId, userId, username, displayName, ct);
         }
@@ -190,8 +196,10 @@ public class CallbackQueryHandler
         {
             lines.Add("");
             lines.Add($"👤 Записалось: <b>{summary.Total}</b>");
-            if (summary.Leads > 0 || summary.Follows > 0)
-                lines.Add($"🕺 Лиды: {summary.Leads} | 💃 Фолловеры: {summary.Follows}");
+            if (summary.Males > 0 || summary.Females > 0)
+                lines.Add($"👦 Парни: {summary.Males} | 👧 Девушки: {summary.Females}");
+            if (summary.Trainers > 0)
+                lines.Add($"🎓 Тренеры: {summary.Trainers}");
         }
 
         return string.Join("\n", lines);

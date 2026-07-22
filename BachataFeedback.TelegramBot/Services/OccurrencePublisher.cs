@@ -127,10 +127,11 @@ public class OccurrencePublisher
         var question = BuildPollQuestion(occurrence);
 
         // Неанонимный poll: только из него получаем poll_answer updates
+        // Варианты: 0=парни, 1=девушки, 2=тренеры/организаторы, 3=не иду
         var pollMsg = await _bot.SendPoll(
             chatId: chat.ChatId,
             question: question,
-            options: ["✅ Иду", "❌ Не иду"],
+            options: ["👦 Парни", "👧 Девушки", "🎓 Тренеры/Организаторы", "❌ Не иду"],
             isAnonymous: false,
             type: Telegram.Bot.Types.Enums.PollType.Regular,
             allowsMultipleAnswers: false,

@@ -59,8 +59,8 @@ public class OccurrencesController : ControllerBase
                 o.Title,
                 o.Level,
                 o.Capacity,
-                o.BalanceLeads,
-                o.BalanceFollows,
+                o.BalanceMales,
+                o.BalanceFemales,
                 o.Notes,
                 o.CreatedAt,
                 DanceGroup = o.DanceGroup == null ? null : new { o.DanceGroup.Id, o.DanceGroup.Name },
@@ -95,8 +95,8 @@ public class OccurrencesController : ControllerBase
             o.Title,
             o.Level,
             o.Capacity,
-            o.BalanceLeads,
-            o.BalanceFollows,
+            o.BalanceMales,
+            o.BalanceFemales,
             o.Notes,
             o.CreatedAt,
             DanceGroup = o.DanceGroup == null ? null : new { o.DanceGroup.Id, o.DanceGroup.Name },
@@ -104,8 +104,9 @@ public class OccurrencesController : ControllerBase
             {
                 Going = o.Attendances.Count(a => a.Status == AttendanceStatus.Going),
                 NotGoing = o.Attendances.Count(a => a.Status == AttendanceStatus.NotGoing),
-                Leads = o.Attendances.Count(a => a.Status == AttendanceStatus.Going && a.DancerRole == "lead"),
-                Follows = o.Attendances.Count(a => a.Status == AttendanceStatus.Going && a.DancerRole == "follow"),
+                Males = o.Attendances.Count(a => a.Status == AttendanceStatus.Going && a.DancerRole == DancerRoleAttendance.Male),
+                Females = o.Attendances.Count(a => a.Status == AttendanceStatus.Going && a.DancerRole == DancerRoleAttendance.Female),
+                Trainers = o.Attendances.Count(a => a.Status == AttendanceStatus.Going && a.DancerRole == DancerRoleAttendance.Trainer),
                 List = o.Attendances
                     .Where(a => a.Status == AttendanceStatus.Going)
                     .Select(a => new
@@ -154,8 +155,8 @@ public class OccurrencesController : ControllerBase
             Title = req.Title,
             Level = req.Level,
             Capacity = req.Capacity,
-            BalanceLeads = req.BalanceLeads,
-            BalanceFollows = req.BalanceFollows,
+            BalanceMales = req.BalanceMales,
+            BalanceFemales = req.BalanceFemales,
             Notes = req.Notes,
             Status = OccurrenceStatus.Draft
         };
@@ -178,8 +179,8 @@ public class OccurrencesController : ControllerBase
         if (req.Level != null) occurrence.Level = req.Level;
         if (req.Notes != null) occurrence.Notes = req.Notes;
         if (req.Capacity.HasValue) occurrence.Capacity = req.Capacity;
-        if (req.BalanceLeads.HasValue) occurrence.BalanceLeads = req.BalanceLeads;
-        if (req.BalanceFollows.HasValue) occurrence.BalanceFollows = req.BalanceFollows;
+        if (req.BalanceMales.HasValue) occurrence.BalanceMales = req.BalanceMales;
+        if (req.BalanceFemales.HasValue) occurrence.BalanceFemales = req.BalanceFemales;
         if (req.StartsAt.HasValue)
             occurrence.StartsAt = DateTime.SpecifyKind(req.StartsAt.Value, DateTimeKind.Utc);
         if (req.EndsAt.HasValue)
@@ -288,8 +289,8 @@ public record CreateOccurrenceRequest(
     string? Title,
     string? Level,
     int? Capacity,
-    int? BalanceLeads,
-    int? BalanceFollows,
+    int? BalanceMales,
+    int? BalanceFemales,
     string? Notes);
 
 public record UpdateOccurrenceRequest(
@@ -299,8 +300,8 @@ public record UpdateOccurrenceRequest(
     string? Title,
     string? Level,
     int? Capacity,
-    int? BalanceLeads,
-    int? BalanceFollows,
+    int? BalanceMales,
+    int? BalanceFemales,
     string? Notes);
 
 public record CreateDanceGroupRequest(string Name, string? Description, int SortOrder = 0);

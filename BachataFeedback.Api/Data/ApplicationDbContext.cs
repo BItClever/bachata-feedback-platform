@@ -27,6 +27,7 @@ public class ApplicationDbContext : IdentityDbContext<User>
     public DbSet<Occurrence> Occurrences { get; set; }
     public DbSet<OccurrencePublication> OccurrencePublications { get; set; }
     public DbSet<Attendance> Attendances { get; set; }
+    public DbSet<PollVoteLog> PollVoteLogs { get; set; }
 
     // Chat analytics
     public DbSet<ChatMessage> ChatMessages { get; set; }

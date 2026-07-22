@@ -109,23 +109,23 @@ public class InlineQueryHandler
         var now = DateTime.UtcNow;
         var soon = now.AddHours(24);
 
-        // Занятия, где нужен баланс (есть BalanceLeads/BalanceFollows и реальный дисбаланс)
+        // Занятия, где нужен баланс (есть BalanceMales/BalanceFemales и реальный дисбаланс)
         var occurrences = await _db.Occurrences
             .Include(o => o.DanceGroup)
             .Include(o => o.Attendances)
             .Where(o => o.StartsAt >= now && o.StartsAt <= soon
                 && o.Status == OccurrenceStatus.Published
-                && (o.BalanceLeads != null || o.BalanceFollows != null))
+                && (o.BalanceMales != null || o.BalanceFemales != null))
             .ToListAsync(ct);
 
         var needSupport = occurrences
             .Where(o =>
             {
                 var going = o.Attendances.Where(a => a.Status == AttendanceStatus.Going).ToList();
-                var leads = going.Count(a => a.DancerRole == "lead");
-                var follows = going.Count(a => a.DancerRole == "follow");
-                return (o.BalanceLeads.HasValue && leads < o.BalanceLeads.Value)
-                    || (o.BalanceFollows.HasValue && follows < o.BalanceFollows.Value);
+                var males = going.Count(a => a.DancerRole == DancerRoleAttendance.Male);
+                var females = going.Count(a => a.DancerRole == DancerRoleAttendance.Female);
+                return (o.BalanceMales.HasValue && males < o.BalanceMales.Value)
+                    || (o.BalanceFemales.HasValue && females < o.BalanceFemales.Value);
             })
             .ToList();
 
@@ -202,17 +202,17 @@ public class InlineQueryHandler
     private static InlineQueryResultArticle BuildSupportResult(string id, Occurrence o)
     {
         var going = o.Attendances.Where(a => a.Status == AttendanceStatus.Going).ToList();
-        var leads = going.Count(a => a.DancerRole == "lead");
-        var follows = going.Count(a => a.DancerRole == "follow");
+        var males = going.Count(a => a.DancerRole == DancerRoleAttendance.Male);
+        var females = going.Count(a => a.DancerRole == DancerRoleAttendance.Female);
         var timeStr = o.StartsAt.ToString("dd.MM HH:mm");
 
-        var title = $"🤝 Нужен саппорт — {o.DanceGroup?.Name ?? o.Type} {timeStr}";
-        var description = $"Лиды: {leads}/{o.BalanceLeads} | Фолловеры: {follows}/{o.BalanceFollows}";
+        var title = $"🤝 Нужна поддержка — {o.DanceGroup?.Name ?? o.Type} {timeStr}";
+        var description = $"Парни: {males}/{o.BalanceMales} | Девушки: {females}/{o.BalanceFemales}";
 
-        var messageText = $"<b>🤝 Нужен саппорт!</b>\n"
+        var messageText = $"<b>🤝 Нужна поддержка!</b>\n"
             + $"📅 {timeStr}\n"
             + $"👥 {o.DanceGroup?.Name ?? o.Type}\n"
-            + $"🕺 Лиды: {leads}/{o.BalanceLeads} | 💃 Фолловеры: {follows}/{o.BalanceFollows}\n\n"
+            + $"👦 Парни: {males}/{o.BalanceMales} | 👧 Девушки: {females}/{o.BalanceFemales}\n\n"
             + "Если можешь помочь — нажми кнопку ниже 👇";
 
         var keyboard = new InlineKeyboardMarkup(new[]

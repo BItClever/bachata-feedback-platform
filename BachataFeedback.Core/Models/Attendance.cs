@@ -48,7 +48,7 @@ public class Attendance
     public string Source { get; set; } = AttendanceSource.TelegramPoll;
 
     /// <summary>
-    /// Роль на этом занятии: lead | follow | both | unknown
+    /// Роль на этом занятии: male | female | trainer | unknown
     /// </summary>
     [MaxLength(10)]
     public string? DancerRole { get; set; }
@@ -67,6 +67,7 @@ public static class AttendanceStatus
     public const string Going = "going";
     public const string NotGoing = "not_going";
     public const string Maybe = "maybe";
+    public const string Retracted = "retracted";
     public const string SupportCandidate = "support_candidate";
     public const string SupportAccepted = "support_accepted";
     public const string CheckedIn = "checked_in";
@@ -78,4 +79,16 @@ public static class AttendanceSource
     public const string TelegramButton = "telegram_button";
     public const string AdminManual = "admin_manual";
     public const string Web = "web";
+}
+
+public static class DancerRoleAttendance
+{
+    /// <summary>Парень</summary>
+    public const string Male = "male";
+    /// <summary>Девушка</summary>
+    public const string Female = "female";
+    /// <summary>Тренер / организатор (не учитывается в балансе)</summary>
+    public const string Trainer = "trainer";
+    /// <summary>Роль не определена</summary>
+    public const string Unknown = "unknown";
 }

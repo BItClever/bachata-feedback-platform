@@ -82,8 +82,10 @@ public class UpdateDispatcher
             var cmd = msg.Text.Split(' ')[0].Split('@')[0].ToLowerInvariant();
             if (cmd is "/summary" or "/profile" or "/analytics")
                 await _analyticsCommandHandler.HandleAsync(msg, ct);
-            else
+            else if (cmd is "/help" or "/start" or "/next_event" or "/today" or "/tomorrow" or "/support"
+                or "/add_lesson" or "/add_party" or "/publish" or "/close_poll" or "/occurrences" or "/cancel")
                 await _commandHandler.HandleAsync(msg, ct);
+            // Все остальные команды игнорируем
         }
     }
 
@@ -91,7 +93,7 @@ public class UpdateDispatcher
     {
         // Сохраняем только текстовые сообщения (или сообщения с подписью к медиа)
         var text = msg.Text ?? msg.Caption;
-        if (string.IsNullOrWhiteSpace(text) && msg.From == null) return;
+        if (string.IsNullOrWhiteSpace(text)) return;
 
         try
         {

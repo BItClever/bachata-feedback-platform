@@ -43,14 +43,14 @@ public class Occurrence
     public int? Capacity { get; set; }
 
     /// <summary>
-    /// Целевой баланс лидов (null = не отслеживается)
+    /// Целевой баланс парней (null = не отслеживается)
     /// </summary>
-    public int? BalanceLeads { get; set; }
+    public int? BalanceMales { get; set; }
 
     /// <summary>
-    /// Целевой баланс фолловеров (null = не отслеживается)
+    /// Целевой баланс девушек (null = не отслеживается)
     /// </summary>
-    public int? BalanceFollows { get; set; }
+    public int? BalanceFemales { get; set; }
 
     [MaxLength(1000)]
     public string? Notes { get; set; }
